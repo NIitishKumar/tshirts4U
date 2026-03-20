@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #111111;
+  --foreground: #FFFFFF;
+  --surface: #1A1A1A;
+  --muted: #1E1E1E;
+  --muted-foreground: #888888;
+  --accent: #E6A57E;
+  --accent-hover: #D4916C;
+  --accent-foreground: #111111;
+  --border: #2A2A2A;
+  --success: #7DB89B;
+  --destructive: #E87E7E;
+}
+
+.light {
+  --background: #FFFFFF;
+  --foreground: #111111;
+  --surface: #F5F5F5;
+  --muted: #F0F0F0;
+  --muted-foreground: #666666;
+  --accent: #E6A57E;
+  --accent-hover: #D4916C;
+  --accent-foreground: #111111;
+  --border: #E5E5E5;
+  --success: #7DB89B;
+  --destructive: #E87E7E;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-success: var(--success);
+  --color-destructive: var(--destructive);
+  --font-sans: var(--font-montserrat);
+  --font-display: var(--font-anton);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-montserrat), system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
