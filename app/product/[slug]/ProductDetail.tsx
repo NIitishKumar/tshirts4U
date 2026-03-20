@@ -45,7 +45,7 @@ export default function ProductDetail({ product }: { product: Product }) {
         >
           <Image
             src={product.images[activeImage]}
-            alt={product.name}
+            alt={`${product.name} — ${product.category} streetwear t-shirt by tshirts4U`}
             fill
             sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover"

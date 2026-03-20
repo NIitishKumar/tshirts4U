@@ -3,8 +3,10 @@ import AnimatedSection from "@/components/AnimatedSection";
 import CartContent from "./CartContent";
 
 export const metadata: Metadata = {
-  title: "Your Cart",
-  description: "Review the items in your cart and proceed to checkout.",
+  title: "Your Cart — tshirts4U",
+  description:
+    "Review the streetwear t-shirts in your cart and proceed to checkout at tshirts4U.",
+  robots: { index: false, follow: false },
 };
 
 export default function CartPage() {

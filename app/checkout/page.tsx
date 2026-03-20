@@ -3,8 +3,9 @@ import AnimatedSection from "@/components/AnimatedSection";
 import CheckoutForm from "./CheckoutForm";
 
 export const metadata: Metadata = {
-  title: "Checkout",
-  description: "Complete your order at tshirts4U.",
+  title: "Checkout — tshirts4U",
+  description: "Complete your order at tshirts4U. Secure checkout with free shipping on orders over $75.",
+  robots: { index: false, follow: false },
 };
 
 export default function CheckoutPage() {

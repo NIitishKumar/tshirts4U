@@ -43,7 +43,7 @@ export default function ProductCard({
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted">
           <Image
             src={product.images[0]}
-            alt={product.name}
+            alt={`${product.name} — ${product.category} streetwear t-shirt`}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:scale-110"

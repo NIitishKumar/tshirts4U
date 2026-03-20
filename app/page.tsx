@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Truck, RotateCcw, Heart, Shield } from "lucide-react";
+
+export const metadata: Metadata = {
+  title:
+    "tshirts4U — Premium Streetwear T-Shirts | Graphic Tees & Basics",
+  description:
+    "Shop premium streetwear t-shirts at tshirts4U. Bold graphic tees, oversized fits, heavyweight cotton basics, and luxury fabrics. Free shipping on orders over $75.",
+  alternates: { canonical: "/" },
+};
 import Hero from "@/components/Hero";
 import ProductGrid from "@/components/ProductGrid";
 import AnimatedSection from "@/components/AnimatedSection";
@@ -135,7 +144,7 @@ export default function Home() {
                 <div className="relative aspect-[3/4]">
                   <Image
                     src={categoryImages[cat.value]}
-                    alt={cat.label}
+                    alt={`${cat.label} streetwear t-shirts — shop ${cat.label.toLowerCase()} collection at tshirts4U`}
                     fill
                     sizes="(max-width: 640px) 50vw, 25vw"
                     className="object-cover transition-transform duration-700 group-hover:scale-110"

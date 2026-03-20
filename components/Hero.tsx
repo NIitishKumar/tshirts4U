@@ -83,7 +83,7 @@ export default function Hero() {
             {hero && (
               <Image
                 src={hero.images[0]}
-                alt={hero.name}
+                alt={`${hero.name} — premium streetwear t-shirt by tshirts4U`}
                 fill
                 priority
                 sizes="(max-width: 1024px) 80vw, 40vw"

@@ -91,6 +91,7 @@ const jsonLd = {
       "@type": "Organization",
       name: "tshirts4U",
       url: siteUrl,
+      logo: `${siteUrl}/logo.png`,
       sameAs: [],
       contactPoint: {
         "@type": "ContactPoint",
