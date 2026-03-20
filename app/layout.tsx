@@ -58,11 +58,20 @@ export const metadata: Metadata = {
     siteName: "tshirts4U",
     title: "tshirts4U — Premium Streetwear T-Shirts",
     description: ogDescription,
+    images: [
+      {
+        url: `${siteUrl}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "tshirts4U — Premium Streetwear T-Shirts",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "tshirts4U — Premium Streetwear T-Shirts",
     description: ogDescription,
+    images: [`${siteUrl}/og-image.png`],
   },
   robots: { index: true, follow: true },
   verification: {
