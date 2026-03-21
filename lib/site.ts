@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = "https://tshirts4u.example";
+const DEFAULT_SITE_URL = "https://tshirts-4u.in";
 
 /** Canonical site origin (no trailing slash). Used for metadata, sitemap, and JSON-LD. */
 export function getSiteUrl(): string {
