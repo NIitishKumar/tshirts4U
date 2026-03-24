@@ -1,0 +1,66 @@
+{
+  "orders": [
+    {
+      "items": [
+        {
+          "slug": "classic-white-tee",
+          "name": "Classic White Tee",
+          "size": "S",
+          "color": "White",
+          "image": "https://images.unsplash.com/photo-1620799139507-2a76f79a2f4d?w=600&h=750&fit=crop&crop=center&auto=format&q=80",
+          "quantity": 1,
+          "unitPrice": 42,
+          "lineTotal": 42
+        }
+      ],
+      "shippingAddress": {
+        "firstName": "Mohit",
+        "lastName": "Singh",
+        "address": "G T ROAD S D M COLONY SIKANDRABAD DIST B S R, S D M COLONY SIKANDRABAD DIST BULANDSHAHR",
+        "city": "BULANDSHAHAR",
+        "zipCode": "203205",
+        "email": "NITISHKUMAR.NG746@GMAIL.COM"
+      },
+      "subtotal": 42,
+      "shipping": 5.99,
+      "total": 47.99,
+      "currency": "INR",
+      "status": "processing",
+      "payment": {
+        "method": "cod",
+        "status": "cod_pending",
+        "amount": 47.99,
+        "currency": "INR"
+      },
+      "id": "ORD-MN4KFWKB-87868D8E",
+      "createdAt": "2026-03-24T12:03:22.907Z",
+      "updatedAt": "2026-03-24T12:03:23.036Z",
+      "shipment": {
+        "carrier": null,
+        "trackingNumber": null,
+        "trackingUrl": null,
+        "events": []
+      },
+      "statusHistory": [
+        {
+          "status": "pending_payment",
+          "label": "pending payment",
+          "at": "2026-03-24T12:03:22.907Z",
+          "note": "Order created"
+        },
+        {
+          "status": "cod_confirmed",
+          "label": "cod confirmed",
+          "at": "2026-03-24T12:03:23.036Z",
+          "note": "Cash on delivery selected"
+        },
+        {
+          "status": "processing",
+          "label": "processing",
+          "at": "2026-03-24T12:03:23.036Z",
+          "note": "Order is being prepared"
+        }
+      ]
+    }
+  ]
+}

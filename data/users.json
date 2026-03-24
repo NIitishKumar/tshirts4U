@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "id": "USR-MN4OVC43-36D602CD",
+      "email": "user_787878787878787@t4u.local",
+      "phone": "787878787878787",
+      "createdAt": "2026-03-24T14:07:21.363Z",
+      "updatedAt": "2026-03-24T14:07:21.363Z",
+      "lastLoginAt": "2026-03-24T14:07:21.363Z"
+    },
+    {
+      "id": "USR-MN4MVP03-F416342F",
+      "email": "nitishkumar.ng746@gmail.com",
+      "phone": "07037293410",
+      "createdAt": "2026-03-24T13:11:38.835Z",
+      "updatedAt": "2026-03-24T15:43:14.251Z",
+      "lastLoginAt": "2026-03-24T15:43:14.251Z"
+    }
+  ]
+}

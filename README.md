@@ -1,37 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# tshirts4U
+
+Streetwear storefront built with Next.js App Router.
 
 ## Getting Started
 
-First, run the development server:
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy env file and add keys:
+
+```bash
+cp .env.example .env
+```
+
+3. Start development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Order Flow (Razorpay + JSON store)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This project now includes:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Add to cart flow from product pages into local storage cart
+- Checkout with payment method selection: `card`, `upi`, `cod`
+- Server-side order creation and price validation
+- Razorpay order create + signature verification APIs
+- COD confirmation API
+- Order cancellation API (before shipped/delivered)
+- Order tracking page with status timeline at `/orders/[orderId]`
 
-## Learn More
+## Login + OTP Session Flow
 
-To learn more about Next.js, take a look at the following resources:
+This project now uses custom JWT cookie auth with OTP-only login:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Login page at `/login` supports OTP login using `email` or `phone`
+- Checkout requires `email` + `phone` and OTP verification before placing order
+- OTP verification auto-creates or reuses a user and creates a session
+- Orders are linked to `userId` and are only readable/cancellable by owner
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Auth APIs:
 
-## Deploy on Vercel
+- `POST /api/auth/otp/send`
+- `POST /api/auth/otp/verify`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Storage
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# tshirts4U
+Orders are stored in a temporary JSON file at `data/orders.json` for local development/demo usage.
+Users are stored in `data/users.json`.
+OTP challenges are stored in `data/otp-challenges.json`.
+
+### Required env vars
+
+- `NEXT_PUBLIC_RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
+- `AUTH_JWT_SECRET`
+
+### Important note for local demo
+
+For `card`/`upi`, checkout currently uses a development signature bypass (`dev_signature`) in development mode only. Replace this with Razorpay Checkout + real callback verification for production use.
+
+For OTP in development, send endpoint logs OTP to server output and returns `devCode`. Replace with real SMS/email provider integration for production.

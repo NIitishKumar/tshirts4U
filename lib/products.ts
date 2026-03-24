@@ -41,6 +41,29 @@ export function resolveTryOnOverlay(
   );
 }
 
+/**
+ * URL sent to the try-on API: use an HTTPS per-colour flat-lay when defined,
+ * otherwise the catalog image the shopper is viewing (`galleryIndex`).
+ */
+export function resolveGarmentImageForTryOn(
+  product: Product,
+  colorName: string,
+  galleryIndex: number,
+): string | null {
+  const overlay = resolveTryOnOverlay(product, colorName);
+  if (overlay.startsWith("https://")) {
+    return overlay;
+  }
+  const idx =
+    Number.isInteger(galleryIndex) &&
+    galleryIndex >= 0 &&
+    galleryIndex < product.images.length
+      ? galleryIndex
+      : 0;
+  const url = product.images[idx];
+  return url?.startsWith("https://") ? url : null;
+}
+
 const ALL_SIZES: Size[] = ["XS", "S", "M", "L", "XL", "XXL"];
 
 function unsplash(

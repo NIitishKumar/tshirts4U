@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Product, Size, ProductColor } from "@/lib/products";
@@ -12,6 +13,7 @@ import VirtualTryOn from "@/components/VirtualTryOn";
 
 export default function ProductDetail({ product }: { product: Product }) {
   const { addItem } = useCart();
+  const router = useRouter();
   const [selectedSize, setSelectedSize] = useState<Size | null>(null);
   const [selectedColor, setSelectedColor] = useState<ProductColor>(
     product.colors[0],
@@ -19,6 +21,7 @@ export default function ProductDetail({ product }: { product: Product }) {
   const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
   const [tryOnOpen, setTryOnOpen] = useState(false);
+  const [buyingNow, setBuyingNow] = useState(false);
 
   function handleAdd() {
     if (!selectedSize) return;
@@ -32,6 +35,22 @@ export default function ProductDetail({ product }: { product: Product }) {
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+  }
+
+  async function handleBuyNow() {
+    if (!selectedSize) return;
+    const buyNowItem = {
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      size: selectedSize,
+      color: selectedColor.name,
+      image: product.images[0],
+      quantity: 1,
+    };
+    sessionStorage.setItem("tshirts4u_buy_now_item", JSON.stringify(buyNowItem));
+    setBuyingNow(true);
+    router.push("/checkout");
   }
 
   return (
@@ -106,7 +125,10 @@ export default function ProductDetail({ product }: { product: Product }) {
               <ColorSelector
                 colors={product.colors}
                 selected={selectedColor}
-                onChange={setSelectedColor}
+                onChange={(c) => {
+                  setSelectedColor(c);
+                  setActiveImage(0);
+                }}
               />
             </div>
           </div>
@@ -172,6 +194,17 @@ export default function ProductDetail({ product }: { product: Product }) {
             )}
           </AnimatePresence>
         </button>
+
+        {selectedSize !== null && (
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            disabled={buyingNow}
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-full border border-accent bg-transparent text-sm font-bold uppercase tracking-wider text-accent transition hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {buyingNow ? "Redirecting..." : "Buy Now"}
+          </button>
+        )}
       </div>
 
       <VirtualTryOn
@@ -179,6 +212,7 @@ export default function ProductDetail({ product }: { product: Product }) {
         onClose={() => setTryOnOpen(false)}
         product={product}
         selectedColor={selectedColor}
+        garmentGalleryIndex={activeImage}
       />
     </div>
   );

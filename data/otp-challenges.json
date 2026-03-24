@@ -1,0 +1,103 @@
+{
+  "challenges": [
+    {
+      "id": "OTP-MN4SAKW3-F51B18",
+      "channel": "phone",
+      "identifier": "07037293410",
+      "codeHash": "706c7a677c1ff80b85ccb5fe3b1dfaee16b83070165866f07ca09249570f7534",
+      "expiresAt": "2026-03-24T15:48:11.427Z",
+      "consumedAt": "2026-03-24T15:43:14.247Z",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "createdAt": "2026-03-24T15:43:11.427Z"
+    },
+    {
+      "id": "OTP-MN4SAH77-6503D7",
+      "channel": "email",
+      "identifier": "NITISHKUMAR.NG746@GMAIL.COM",
+      "codeHash": "85bf95883635f6b261df622ac258bd6973925e4f3b259a84def7caa23a64a440",
+      "expiresAt": "2026-03-24T15:48:06.643Z",
+      "consumedAt": "2026-03-24T15:43:09.450Z",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "createdAt": "2026-03-24T15:43:06.643Z"
+    },
+    {
+      "id": "OTP-MN4SADFP-45CACD",
+      "channel": "email",
+      "identifier": "NITISHKUMAR.NG746@GMAIL.COM",
+      "codeHash": "458701f364f232cd40274c7ed2f5993e20979e3c11c055dd4406719b1721e4da",
+      "expiresAt": "2026-03-24T15:48:01.765Z",
+      "consumedAt": "2026-03-24T15:43:04.442Z",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "createdAt": "2026-03-24T15:43:01.765Z"
+    },
+    {
+      "id": "OTP-MN4RY4NS-5DDBA2",
+      "channel": "phone",
+      "identifier": "07037293410",
+      "codeHash": "3a8c3a68457bddf907d2056049b1768715ad50b497051081a14a3459cae7080a",
+      "expiresAt": "2026-03-24T15:38:30.520Z",
+      "consumedAt": "2026-03-24T15:33:34.651Z",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "createdAt": "2026-03-24T15:33:30.520Z"
+    },
+    {
+      "id": "OTP-MN4RXRRJ-569857",
+      "channel": "phone",
+      "identifier": "07037293410",
+      "codeHash": "8b22fdee885bcdf1d07ff31c3f0cd66d5063e948a8cd76e60605b44b8e6ee936",
+      "expiresAt": "2026-03-24T15:38:13.807Z",
+      "consumedAt": "2026-03-24T15:33:25.106Z",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "createdAt": "2026-03-24T15:33:13.807Z"
+    },
+    {
+      "id": "OTP-MN4OV4JW-D33372",
+      "channel": "phone",
+      "identifier": "787878787878787",
+      "codeHash": "5086cc0204b6804deee9396de4fe083ab74788c2adabd8e1ffd95e50ea5f20a5",
+      "expiresAt": "2026-03-24T14:12:11.564Z",
+      "consumedAt": "2026-03-24T14:07:21.338Z",
+      "attempts": 1,
+      "maxAttempts": 5,
+      "createdAt": "2026-03-24T14:07:11.564Z"
+    },
+    {
+      "id": "OTP-MN4MW6Z1-AA0A7C",
+      "channel": "phone",
+      "identifier": "+917037293410",
+      "codeHash": "cfa602bd2d036f1e44c3fbe9370b3e8d8a47e790d644f5bf246119275909c015",
+      "expiresAt": "2026-03-24T13:17:02.125Z",
+      "consumedAt": "2026-03-24T13:12:05.388Z",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "createdAt": "2026-03-24T13:12:02.125Z"
+    },
+    {
+      "id": "OTP-MN4MVZII-46544B",
+      "channel": "email",
+      "identifier": "nitishkumar.ng746@gmail.com",
+      "codeHash": "2ffc1daf9ec1a48ecbf069cb1170b96f677ce82f9f6c27d7ce7486b6d74f5c68",
+      "expiresAt": "2026-03-24T13:16:52.458Z",
+      "consumedAt": "2026-03-24T13:11:55.397Z",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "createdAt": "2026-03-24T13:11:52.458Z"
+    },
+    {
+      "id": "OTP-MN4MVJFH-12A1D3",
+      "channel": "email",
+      "identifier": "nitishkumar.ng746@gmail.com",
+      "codeHash": "fe437caf5612963abf5f556c6e5b29a6cfd78149c8b12ff4bb5afb8b26c12a2d",
+      "expiresAt": "2026-03-24T13:16:31.613Z",
+      "consumedAt": "2026-03-24T13:11:38.813Z",
+      "attempts": 0,
+      "maxAttempts": 5,
+      "createdAt": "2026-03-24T13:11:31.613Z"
+    }
+  ]
+}

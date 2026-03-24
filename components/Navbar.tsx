@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag, Menu, X, Sun, Moon } from "lucide-react";
+import { ShoppingBag, Menu, X, Sun, Moon, User } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useTheme } from "@/lib/theme-context";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,12 +12,47 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [userPhone, setUserPhone] = useState<string | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    async function loadSession() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        const json = await res.json();
+        if (!active) return;
+        if (res.ok && json?.user?.phone) {
+          setUserPhone(json.user.phone);
+        } else {
+          setUserPhone(null);
+        }
+      } catch {
+        if (active) setUserPhone(null);
+      } finally {
+        if (active) setAuthLoading(false);
+      }
+    }
+    void loadSession();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      setUserPhone(null);
+      window.location.href = "/";
+    }
+  }
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -101,6 +136,25 @@ export default function Navbar() {
               </AnimatePresence>
             </Link>
 
+            {!authLoading &&
+              (userPhone ? (
+                <button
+                  onClick={handleLogout}
+                  className="hidden rounded-full border border-border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-foreground/80 transition hover:border-accent hover:text-accent md:inline-flex"
+                  title={userPhone}
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  className="hidden items-center gap-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-foreground/80 transition hover:border-accent hover:text-accent md:inline-flex"
+                >
+                  <User className="h-3.5 w-3.5" />
+                  Login
+                </Link>
+              ))}
+
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="flex h-9 w-9 items-center justify-center rounded-full text-foreground md:hidden"
@@ -136,6 +190,26 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {!authLoading &&
+              (userPhone ? (
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    void handleLogout();
+                  }}
+                  className="font-display text-3xl uppercase tracking-tight text-foreground transition-colors hover:text-accent"
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="font-display text-3xl uppercase tracking-tight text-foreground transition-colors hover:text-accent"
+                >
+                  Login
+                </Link>
+              ))}
           </motion.div>
         )}
       </AnimatePresence>

@@ -10,7 +10,10 @@ import {
 import { Camera, X, Loader2, ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Product, ProductColor } from "@/lib/products";
-import { resolveTryOnOverlay } from "@/lib/products";
+import {
+  resolveGarmentImageForTryOn,
+  resolveTryOnOverlay,
+} from "@/lib/products";
 
 type CameraError = "denied" | "unavailable" | "insecure" | null;
 
@@ -42,11 +45,14 @@ export default function VirtualTryOn({
   onClose,
   product,
   selectedColor,
+  garmentGalleryIndex,
 }: {
   open: boolean;
   onClose: () => void;
   product: Product;
   selectedColor: ProductColor;
+  /** Which product.images[] entry is shown in the PDP gallery (must match try-on reference). */
+  garmentGalleryIndex: number;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -263,6 +269,14 @@ export default function VirtualTryOn({
     setCaptureMessage(null);
     setResultPreviewUrl(null);
 
+    await new Promise<void>((resolve) => {
+      if (typeof video.requestVideoFrameCallback === "function") {
+        video.requestVideoFrameCallback(() => resolve());
+      } else {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }
+    });
+
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -272,6 +286,8 @@ export default function VirtualTryOn({
       setCaptureMessage("Could not capture frame.");
       return;
     }
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.save();
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
@@ -279,7 +295,7 @@ export default function VirtualTryOn({
     ctx.restore();
 
     const blob = await new Promise<Blob | null>((res) =>
-      canvas.toBlob((b) => res(b), "image/jpeg", 0.88),
+      canvas.toBlob((b) => res(b), "image/jpeg", 0.92),
     );
     if (!blob) {
       setCaptureState("error");
@@ -287,10 +303,16 @@ export default function VirtualTryOn({
       return;
     }
 
-    const garmentImageUrl = product.images[0];
-    if (!garmentImageUrl?.startsWith("https://")) {
+    const garmentImageUrl = resolveGarmentImageForTryOn(
+      product,
+      selectedColor.name,
+      garmentGalleryIndex,
+    );
+    if (!garmentImageUrl) {
       setCaptureState("error");
-      setCaptureMessage("Product needs an https garment image for AI try-on.");
+      setCaptureMessage(
+        "Product needs an HTTPS garment image for AI try-on (use the main product photo or add a try-on image URL).",
+      );
       return;
     }
 
@@ -379,8 +401,8 @@ export default function VirtualTryOn({
             <p className="text-xs leading-relaxed text-muted-foreground">
               Live preview layers a shirt graphic over your camera.{" "}
               <span className="text-foreground/90">AI try-on</span> sends your
-              snapshot to the API: OpenAI edits your actual photo in a torso
-              mask (or Replicate VTON when configured). Expect ~30–60 seconds.
+              snapshot plus the <strong className="text-foreground/90">main product photo you have selected</strong>{" "}
+              above the button (thumbnails) to the try-on service. Expect ~30–60 seconds.
             </p>
 
             <div
@@ -470,10 +492,11 @@ export default function VirtualTryOn({
 
             <div className="rounded-lg border border-border bg-muted/40 p-3 text-[11px] leading-relaxed text-muted-foreground">
               <strong className="font-medium text-foreground">Privacy:</strong>{" "}
-              Video stays in your browser. AI try-on sends your capture to this
-              app’s API, which forwards to your try-on backend (e.g. OpenAI or
-              Replicate). Set <code className="text-foreground/80">TRY_ON_PROVIDER_URL</code>{" "}
-              in <code className="text-foreground/80">.env</code>; publish a policy before production.
+              Video stays in your browser. AI try-on sends your capture and the
+              selected product photo to this app’s API, which forwards to the
+              try-on service. Override the backend URL with{" "}
+              <code className="text-foreground/80">TRY_ON_PROVIDER_URL</code> in{" "}
+              <code className="text-foreground/80">.env</code> if needed.
             </div>
 
             <div className="flex flex-wrap gap-2">

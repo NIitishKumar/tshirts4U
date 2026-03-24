@@ -8,6 +8,11 @@ import CartItemRow from "@/components/CartItem";
 export default function CartContent() {
   const { items, totalPrice } = useCart();
 
+  function handleProceedToCheckout() {
+    // If user comes from cart, force full-cart checkout (not Buy Now single item).
+    sessionStorage.removeItem("tshirts4u_buy_now_item");
+  }
+
   if (items.length === 0) {
     return (
       <div className="mt-20 flex flex-col items-center gap-4 text-center">
@@ -79,6 +84,7 @@ export default function CartContent() {
 
         <Link
           href="/checkout"
+          onClick={handleProceedToCheckout}
           className="mt-6 flex h-13 w-full items-center justify-center rounded-full bg-accent text-sm font-bold uppercase tracking-wider text-accent-foreground transition-all duration-300 hover:bg-accent-hover hover:shadow-lg hover:shadow-accent/20"
         >
           Proceed to checkout
