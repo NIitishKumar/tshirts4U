@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import axios from "axios";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import api, { readApiErrorMessage } from "../services/appi";
 
-async function readJsonSafe(response: Response): Promise<Record<string, unknown> | null> {
-  const text = await response.text();
-  if (!text) return null;
-  try {
-    return JSON.parse(text) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
+type LoginSendResponse = {
+  ok?: boolean;
+  error?: string;
+  challengeId?: string;
+  otp?: string;
+  devCode?: string;
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,25 +31,44 @@ export default function LoginPage() {
     setError(null);
     setStatus(null);
     try {
-      const res = await fetch("/api/auth/otp/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: "phone", identifier: phone.trim() }),
+      if (!phone.trim()) {
+        setError("Enter your phone number.");
+        return;
+      }
+      const { data, status } = await api.post<LoginSendResponse>("/api/auth/login", {
+        phone: phone.trim(),
+        channel: "phone",
+        identifier: phone.trim(),
       });
-      const json = await readJsonSafe(res);
-      if (!res.ok) {
-        throw new Error((json?.error as string) ?? "Failed to send OTP.");
+
+      if (status >= 400 || !data?.ok) {
+        setError(readApiErrorMessage(data) ?? "Failed to send OTP.");
+        return;
       }
-      const cid = typeof json?.challengeId === "string" ? json.challengeId : "";
-      if (!cid) {
-        throw new Error("Could not send OTP. Please try again.");
-      }
+
+      const cid = typeof data.challengeId === "string" ? data.challengeId : "";
       setChallengeId(cid);
-      setDevCode(json?.devCode != null ? String(json.devCode) : null);
+
+      const devOtp =
+        typeof data.otp === "string"
+          ? data.otp
+          : typeof data.devCode === "string"
+            ? data.devCode
+            : null;
+      setDevCode(devOtp);
+
       setStep("otp");
-      setStatus("OTP sent to your phone number.");
+      setStatus(
+        devOtp
+          ? `OTP sent (check below: ${devOtp})`
+          : "OTP sent. Check your messages.",
+      );
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to send OTP.");
+      if (axios.isAxiosError(e) && e.response) {
+        setError(readApiErrorMessage(e.response.data) ?? "Failed to send OTP.");
+      } else {
+        setError(e instanceof Error ? e.message : "Failed to send OTP.");
+      }
     } finally {
       setLoading(false);
     }
@@ -60,25 +79,48 @@ export default function LoginPage() {
     setError(null);
     setStatus(null);
     try {
-      const res = await fetch("/api/auth/otp/verify", {
+      const { data, status } = await api.post<{
+        ok?: boolean;
+        error?: string;
+        user?: unknown;
+        otp?: unknown;
+      }>("/api/auth/verify-otp", {
+        phone: phone.trim(),
+        channel: "phone",
+        identifier: phone.trim(),
+        challengeId,
+        code: code.trim(),
+        otp: code.trim(),
+      });
+      if (status >= 400 || !data?.ok) {
+        setError(readApiErrorMessage(data) ?? "OTP verification failed.");
+        return;
+      }
+
+      const sessionRes = await fetch("/api/auth/external-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim() || `user_${phone.replace(/\D/g, "")}@t4u.local`,
-          phone: phone.trim(),
-          channel: "phone",
-          identifier: phone.trim(),
-          challengeId,
-          code,
-        }),
+        body: JSON.stringify({ user: data.user }),
       });
-      const json = await readJsonSafe(res);
-      if (!res.ok) {
-        throw new Error((json?.error as string) ?? "OTP verification failed.");
+      let sessionJson: { ok?: boolean; error?: string } | null = null;
+      try {
+        sessionJson = (await sessionRes.json()) as { ok?: boolean; error?: string };
+      } catch {
+        sessionJson = null;
       }
+      if (!sessionRes.ok || !sessionJson?.ok) {
+        setError(readApiErrorMessage(sessionJson) ?? "Could not start session.");
+        return;
+      }
+
       router.push("/shop");
+      router.refresh();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "OTP verification failed.");
+      if (axios.isAxiosError(e) && e.response) {
+        setError(readApiErrorMessage(e.response.data) ?? "OTP verification failed.");
+      } else {
+        setError(e instanceof Error ? e.message : "OTP verification failed.");
+      }
     } finally {
       setLoading(false);
     }

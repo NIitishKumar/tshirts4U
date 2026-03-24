@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { fetchOrderFromBackend } from "@/lib/backend-order";
+import { getBackendBaseUrl } from "@/lib/backend-config";
 import { getAuthSession } from "@/lib/auth-session";
 import { canCancelOrder, getOrder } from "@/lib/order-store";
 import OrderActions from "./OrderActions";
@@ -24,7 +26,9 @@ export default async function OrderDetailPage({
   }
 
   const { orderId } = await params;
-  const order = await getOrder(orderId);
+  const order = getBackendBaseUrl()
+    ? await fetchOrderFromBackend(orderId)
+    : await getOrder(orderId);
   if (!order) notFound();
   if (order.userId !== session.userId) notFound();
 

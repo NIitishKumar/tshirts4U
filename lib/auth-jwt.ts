@@ -13,7 +13,12 @@ function getJwtSecret(): Uint8Array {
 }
 
 export async function signAuthJwt(payload: AuthSessionPayload): Promise<string> {
-  return await new SignJWT(payload)
+  const claims = {
+    userId: payload.userId,
+    email: payload.email,
+    phone: payload.phone,
+  };
+  return await new SignJWT(claims)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setIssuer(ISSUER)
