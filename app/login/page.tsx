@@ -4,6 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+async function readJsonSafe(response: Response): Promise<Record<string, unknown> | null> {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
@@ -24,12 +34,18 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: "phone", identifier: phone }),
+        body: JSON.stringify({ channel: "phone", identifier: phone.trim() }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error ?? "Failed to send OTP.");
-      setChallengeId(json.challengeId);
-      setDevCode(json?.devCode ?? null);
+      const json = await readJsonSafe(res);
+      if (!res.ok) {
+        throw new Error((json?.error as string) ?? "Failed to send OTP.");
+      }
+      const cid = typeof json?.challengeId === "string" ? json.challengeId : "";
+      if (!cid) {
+        throw new Error("Could not send OTP. Please try again.");
+      }
+      setChallengeId(cid);
+      setDevCode(json?.devCode != null ? String(json.devCode) : null);
       setStep("otp");
       setStatus("OTP sent to your phone number.");
     } catch (e: unknown) {
@@ -49,15 +65,17 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim() || `user_${phone.replace(/\D/g, "")}@t4u.local`,
-          phone,
+          phone: phone.trim(),
           channel: "phone",
-          identifier: phone,
+          identifier: phone.trim(),
           challengeId,
           code,
         }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error ?? "OTP verification failed.");
+      const json = await readJsonSafe(res);
+      if (!res.ok) {
+        throw new Error((json?.error as string) ?? "OTP verification failed.");
+      }
       router.push("/shop");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "OTP verification failed.");
@@ -93,6 +111,8 @@ export default function LoginPage() {
 
         <input
           value={phone}
+          type="tel"
+          maxLength={10}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="Phone (e.g. +919999999999)"
           className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-foreground outline-none focus:border-accent"

@@ -1,6 +1,30 @@
 {
   "users": [
     {
+      "id": "USR-MN4SR5MP-8B6A038E",
+      "email": "user_7777777777@t4u.local",
+      "phone": "7777777777",
+      "createdAt": "2026-03-24T15:56:04.801Z",
+      "updatedAt": "2026-03-24T15:56:04.801Z",
+      "lastLoginAt": "2026-03-24T15:56:04.801Z"
+    },
+    {
+      "id": "USR-MN4SPKS1-058B60FC",
+      "email": "user_6677777777@t4u.local",
+      "phone": "6677777777",
+      "createdAt": "2026-03-24T15:54:51.121Z",
+      "updatedAt": "2026-03-24T15:54:51.121Z",
+      "lastLoginAt": "2026-03-24T15:54:51.121Z"
+    },
+    {
+      "id": "USR-MN4SH6CQ-CA8BC290",
+      "email": "user_8989898898@t4u.local",
+      "phone": "8989898898",
+      "createdAt": "2026-03-24T15:48:19.178Z",
+      "updatedAt": "2026-03-24T15:48:19.178Z",
+      "lastLoginAt": "2026-03-24T15:48:19.178Z"
+    },
+    {
       "id": "USR-MN4OVC43-36D602CD",
       "email": "user_787878787878787@t4u.local",
       "phone": "787878787878787",
