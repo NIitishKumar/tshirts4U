@@ -97,21 +97,21 @@ export default function LoginPage() {
         return;
       }
 
-      const sessionRes = await fetch("/api/auth/external-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user: data.user }),
-      });
-      let sessionJson: { ok?: boolean; error?: string } | null = null;
-      try {
-        sessionJson = (await sessionRes.json()) as { ok?: boolean; error?: string };
-      } catch {
-        sessionJson = null;
-      }
-      if (!sessionRes.ok || !sessionJson?.ok) {
-        setError(readApiErrorMessage(sessionJson) ?? "Could not start session.");
-        return;
-      }
+      // const sessionRes = await fetch("/api/auth/external-session", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ user: data.user }),
+      // });
+      // let sessionJson: { ok?: boolean; error?: string } | null = null;
+      // try {
+      //   sessionJson = (await sessionRes.json()) as { ok?: boolean; error?: string };
+      // } catch {
+      //   sessionJson = null;
+      // }
+      // if (!sessionRes.ok || !sessionJson?.ok) {
+      //   setError(readApiErrorMessage(sessionJson) ?? "Could not start session.");
+      //   return;
+      // }
 
       router.push("/shop");
       router.refresh();
