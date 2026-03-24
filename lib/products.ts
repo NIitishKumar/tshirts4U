@@ -22,6 +22,23 @@ export interface Product {
   images: string[];
   featured: boolean;
   badge: Badge;
+  /** Flat-lay / cut-out used for try-on when no per-colour URL matches */
+  tryOnImage?: string;
+  /** Per-colour overlay URLs (e.g. different graphics per variant) */
+  tryOnByColor?: Partial<Record<string, string>>;
+}
+
+export const DEFAULT_TRY_ON_OVERLAY = "/try-on/flat-tee.svg";
+
+export function resolveTryOnOverlay(
+  product: Product,
+  colorName: string,
+): string {
+  return (
+    product.tryOnByColor?.[colorName] ??
+    product.tryOnImage ??
+    DEFAULT_TRY_ON_OVERLAY
+  );
 }
 
 const ALL_SIZES: Size[] = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -54,6 +71,7 @@ export const products: Product[] = [
       unsplash("photo-1620799139507-2a76f79a2f4d", 600, 750, "center"),
       unsplash("photo-1521572163474-6864f9cf17ab", 600, 750, "top"),
     ],
+    tryOnImage: DEFAULT_TRY_ON_OVERLAY,
     featured: true,
     badge: "best-seller",
   },
@@ -96,6 +114,10 @@ export const products: Product[] = [
       unsplash("photo-1603113730470-780cbb2f32ca", 600, 750, "center"),
       unsplash("photo-1716951884284-4d138f2c42b2", 600, 750, "center"),
     ],
+    tryOnByColor: {
+      Sand: DEFAULT_TRY_ON_OVERLAY,
+      "Dusty Rose": DEFAULT_TRY_ON_OVERLAY,
+    },
     featured: true,
     badge: "trending",
   },

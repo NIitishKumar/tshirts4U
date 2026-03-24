@@ -8,6 +8,7 @@ import type { Product, Size, ProductColor } from "@/lib/products";
 import { useCart } from "@/lib/cart-context";
 import SizeSelector from "@/components/SizeSelector";
 import ColorSelector from "@/components/ColorSelector";
+import VirtualTryOn from "@/components/VirtualTryOn";
 
 export default function ProductDetail({ product }: { product: Product }) {
   const { addItem } = useCart();
@@ -17,6 +18,7 @@ export default function ProductDetail({ product }: { product: Product }) {
   );
   const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
+  const [tryOnOpen, setTryOnOpen] = useState(false);
 
   function handleAdd() {
     if (!selectedSize) return;
@@ -129,9 +131,17 @@ export default function ProductDetail({ product }: { product: Product }) {
         </div>
 
         <button
+          type="button"
+          onClick={() => setTryOnOpen(true)}
+          className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-border bg-transparent text-sm font-bold uppercase tracking-wider text-foreground transition hover:border-accent hover:text-accent"
+        >
+          Try on with camera
+        </button>
+
+        <button
           onClick={handleAdd}
           disabled={!selectedSize || added}
-          className={`mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-full text-sm font-bold uppercase tracking-wider transition-all duration-300 ${
+          className={`mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-full text-sm font-bold uppercase tracking-wider transition-all duration-300 ${
             added
               ? "bg-success text-white"
               : selectedSize
@@ -163,6 +173,13 @@ export default function ProductDetail({ product }: { product: Product }) {
           </AnimatePresence>
         </button>
       </div>
+
+      <VirtualTryOn
+        open={tryOnOpen}
+        onClose={() => setTryOnOpen(false)}
+        product={product}
+        selectedColor={selectedColor}
+      />
     </div>
   );
 }
