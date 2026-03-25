@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { AddressSchema } from "./address.model.js";
 
 const UserSchema = new mongoose.Schema({   
   id: { type: String },
@@ -7,7 +8,6 @@ const UserSchema = new mongoose.Schema({
   phone: { type: String },
   createdAt: { type: Date },
   updatedAt: { type: Date },
-  address: { type: String },
   city: { type: String },
   state: { type: String },
   country: { type: String },
@@ -24,7 +24,7 @@ const UserSchema = new mongoose.Schema({
   otpVerifiedAt: { type: Date },
   otpVerifiedBy: { type: String },
   otpVerifiedAt: { type: Date },
-  address: [{ type: String, ref: "Address" }],
+  address: [AddressSchema],
 });
 
 export default mongoose.model("User", UserSchema);

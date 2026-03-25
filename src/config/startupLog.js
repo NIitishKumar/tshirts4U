@@ -18,6 +18,10 @@ function logRegisteredRoutes() {
     ["POST", "/api/auth/login"],
     ["POST", "/api/auth/verify-otp", "phone + otp body"],
     ["POST", "/api/auth/external-session", "{ user } body from external provider"],
+    ["GET", "/api/users/:userId/addresses", "list addresses"],
+    ["POST", "/api/users/:userId/addresses", "create address"],
+    ["PUT", "/api/users/:userId/addresses/:addressId", "edit address"],
+    ["DELETE", "/api/users/:userId/addresses/:addressId", "delete address"],
   ];
   for (const [method, path, hint] of routes) {
     const suffix = hint ? `  (${hint})` : "";

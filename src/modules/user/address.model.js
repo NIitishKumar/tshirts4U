@@ -1,9 +1,12 @@
 import mongoose from "mongoose";
 
 // Reusable address subdocument schema.
-// Kept as `_id: false` since addresses are typically embedded inside another document (like `User`).
+// We keep the default embedded `_id` enabled so address CRUD can target a specific item.
 export const AddressSchema = new mongoose.Schema(
   {
+    firstName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
+    phoneNo: { type: String, trim: true },
     address: { type: String, trim: true }, // street address / address line
     city: { type: String, trim: true },
     state: { type: String, trim: true },
@@ -12,6 +15,6 @@ export const AddressSchema = new mongoose.Schema(
     latitude: { type: Number },
     longitude: { type: Number },
   },
-  { _id: false }
+  {}
 );
 

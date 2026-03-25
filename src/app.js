@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import authRoutes from "./modules/auth/auth.routes.js";
+import addressRoutes from "./modules/address/address.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
 import virtualTryOnRoutes from "./modules/virtualTryOn/virtualTryOn.routes.js";
 
@@ -13,6 +14,7 @@ export function createApp() {
   });
 
   app.use(virtualTryOnRoutes);
+  app.use("/api/users", addressRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/auth", authRoutes);
 
