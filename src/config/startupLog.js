@@ -16,6 +16,8 @@ function logRegisteredRoutes() {
     ["GET", "/health"],
     ["GET", "/api/users"],
     ["POST", "/api/auth/login"],
+    ["POST", "/api/auth/verify-otp", "phone + otp body"],
+    ["POST", "/api/auth/external-session", "{ user } body from external provider"],
   ];
   for (const [method, path, hint] of routes) {
     const suffix = hint ? `  (${hint})` : "";

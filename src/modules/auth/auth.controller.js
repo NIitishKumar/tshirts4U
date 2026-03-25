@@ -39,3 +39,19 @@ export async function postVerifyOTP(req, res) {
   res.json({ ok: true, user });
   return;
 }
+
+export async function postExternalSession(req, res) {
+  const { user: externalUser } = req.body ?? {};
+
+  if (!externalUser) {
+    return res.status(400).json({ ok: false, error: "user is required" });
+  }
+
+  const { upsertExternalUser } = await import("./auth.service.js");
+  try {
+    const user = await upsertExternalUser(externalUser);
+    res.json({ ok: true, user });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err?.message ?? "Invalid user payload" });
+  }
+}
