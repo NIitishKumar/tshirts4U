@@ -96,22 +96,18 @@ export default function LoginPage() {
         setError(readApiErrorMessage(data) ?? "OTP verification failed.");
         return;
       }
+      localStorage.setItem("user", JSON.stringify(data.user));
 
-      // const sessionRes = await fetch("/api/auth/external-session", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ user: data.user }),
-      // });
-      // let sessionJson: { ok?: boolean; error?: string } | null = null;
-      // try {
-      //   sessionJson = (await sessionRes.json()) as { ok?: boolean; error?: string };
-      // } catch {
-      //   sessionJson = null;
-      // }
-      // if (!sessionRes.ok || !sessionJson?.ok) {
-      //   setError(readApiErrorMessage(sessionJson) ?? "Could not start session.");
-      //   return;
-      // }
+      const { data: sessionData, status: sessionStatus } = await api.post<{
+        ok?: boolean;
+        error?: string;
+      }>("/api/auth/external-session", {
+        user: data.user,
+      });
+      if (sessionStatus >= 400 || !sessionData?.ok) {
+        setError(readApiErrorMessage(sessionData) ?? "Could not start session.");
+        return;
+      }
 
       router.push("/shop");
       router.refresh();
