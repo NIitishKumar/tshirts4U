@@ -7,6 +7,7 @@ import { CheckCircle, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart, type CartItem } from "@/lib/cart-context";
 import type { PaymentMethod } from "@/lib/order-types";
+import type { Address, CreateAddressPayload } from "@/lib/address-types";
 
 function InputField({
   label,
@@ -36,12 +37,13 @@ async function readJsonSafe(response: Response): Promise<Record<string, unknown>
 }
 
 export default function CheckoutForm() {
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, clearCart } = useCart();
   const router = useRouter();
   const [placed, setPlaced] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [otpChannel, setOtpChannel] = useState<"email" | "phone">("email");
   const [otpIdentifier, setOtpIdentifier] = useState("");
   const [otpChallengeId, setOtpChallengeId] = useState("");
@@ -49,6 +51,15 @@ export default function CheckoutForm() {
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpStatus, setOtpStatus] = useState<string | null>(null);
   const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [savedAddressDraftKey, setSavedAddressDraftKey] = useState<string | null>(null);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [addressesError, setAddressesError] = useState<string | null>(null);
+  const [isPersistingAddress, setIsPersistingAddress] = useState(false);
+  const [addingNewAddress, setAddingNewAddress] = useState(false);
   const [step, setStep] = useState(0);
   const [shippingData, setShippingData] = useState({
     firstName: "",
@@ -56,9 +67,87 @@ export default function CheckoutForm() {
     address: "",
     city: "",
     zipCode: "",
+    state: "ENG",
+    country: "UK",
+    latitude: "0",
+    longitude: "0",
     email: "",
     phone: "",
   });
+
+  type AddressDraft = {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+    latitude: number;
+    longitude: number;
+  };
+
+  function getDraftFromShippingData(): AddressDraft {
+    const latitude = Number(shippingData.latitude);
+    const longitude = Number(shippingData.longitude);
+    return {
+      firstName: shippingData.firstName.trim(),
+      lastName: shippingData.lastName.trim(),
+      phone: shippingData.phone.trim(),
+      address: shippingData.address.trim(),
+      city: shippingData.city.trim(),
+      state: shippingData.state.trim(),
+      country: shippingData.country.trim(),
+      postalCode: shippingData.zipCode.trim(),
+      latitude: Number.isFinite(latitude) ? latitude : 0,
+      longitude: Number.isFinite(longitude) ? longitude : 0,
+    };
+  }
+
+  function draftKey(d: AddressDraft): string {
+    return JSON.stringify(d);
+  }
+
+  function draftKeyFromAddress(a: Address): string {
+    return draftKey({
+      firstName: a.firstName.trim(),
+      lastName: a.lastName.trim(),
+      phone: a.phone.trim(),
+      address: a.address.trim(),
+      city: a.city.trim(),
+      state: a.state.trim(),
+      country: a.country.trim(),
+      postalCode: a.postalCode.trim(),
+      latitude: a.latitude,
+      longitude: a.longitude,
+    });
+  }
+
+  function applyAddressToShippingData(a: Address) {
+    setShippingData((prev) => ({
+      ...prev,
+      firstName: a.firstName || prev.firstName,
+      lastName: a.lastName || prev.lastName,
+      phone: a.phone || prev.phone,
+      address: a.address,
+      city: a.city,
+      zipCode: a.postalCode,
+      state: a.state,
+      country: a.country,
+      latitude: String(a.latitude),
+      longitude: String(a.longitude),
+    }));
+  }
+
+  const hideFirstLastInputs =
+    !!selectedAddressId &&
+    !addingNewAddress &&
+    shippingData.firstName.trim().length > 0 &&
+    shippingData.lastName.trim().length > 0;
+
+  const hidePhoneInput =
+    !!selectedAddressId && !addingNewAddress && shippingData.phone.trim().length > 0;
 
   useEffect(() => {
     try {
@@ -78,6 +167,94 @@ export default function CheckoutForm() {
       setBuyNowItem(null);
     }
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    async function loadSession() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        const json = await readJsonSafe(res);
+        if (!active) return;
+        const user =
+          (json?.user as Record<string, unknown> | undefined) ?? undefined;
+        const phone = typeof user?.phone === "string" ? user.phone : "";
+        const email = typeof user?.email === "string" ? user.email : "";
+        const id = typeof user?.id === "string" ? user.id : null;
+        if (res.ok && phone) {
+          setIsLoggedIn(true);
+          setUserId(id);
+          setOtpVerified(true);
+          setOtpStatus("Logged in. OTP verification not required.");
+          setShippingData((prev) => ({
+            ...prev,
+            phone: prev.phone || phone,
+            email: prev.email || email,
+          }));
+          setStep((prev) => (prev === 1 ? 2 : prev));
+        } else {
+          setIsLoggedIn(false);
+          setUserId(null);
+        }
+      } catch {
+        if (active) setIsLoggedIn(false);
+      }
+    }
+    void loadSession();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn || !userId) return;
+    const uid = userId;
+
+    let active = true;
+    async function loadAddresses() {
+      setAddressesLoading(true);
+      setAddressesError(null);
+      try {
+        const res = await fetch(`/api/users/${encodeURIComponent(uid)}/addresses`, {
+          cache: "no-store",
+        });
+        const json = await readJsonSafe(res);
+        const addresses = (json?.addresses ?? undefined) as Address[] | undefined;
+
+        if (!res.ok || !json?.ok || !Array.isArray(addresses)) {
+          throw new Error(
+            (json?.error as string | undefined) ?? "Failed to load saved addresses.",
+          );
+        }
+        if (!active) return;
+
+        setSavedAddresses(addresses);
+
+        const isShippingBlank =
+          shippingData.address.trim().length === 0 &&
+          shippingData.city.trim().length === 0 &&
+          shippingData.zipCode.trim().length === 0;
+
+        if (!selectedAddressId && isShippingBlank && addresses.length > 0) {
+          const first = addresses[0]!;
+          setSelectedAddressId(first._id);
+          setSavedAddressDraftKey(draftKeyFromAddress(first));
+          setAddingNewAddress(false);
+          applyAddressToShippingData(first);
+        }
+      } catch (e: unknown) {
+        if (!active) return;
+        setAddressesError(e instanceof Error ? e.message : "Failed to load saved addresses.");
+      } finally {
+        if (active) setAddressesLoading(false);
+      }
+    }
+
+    void loadAddresses();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, userId]);
 
   const checkoutItems = useMemo(
     () => (buyNowItem ? [buyNowItem] : items),
@@ -100,6 +277,14 @@ export default function CheckoutForm() {
         quantity: item.quantity,
       })),
     [checkoutItems],
+  );
+
+  const stepLabels = useMemo(
+    () =>
+      isLoggedIn
+        ? ["Shipping", "Payment", "Review"]
+        : ["Shipping", "Verify", "Payment", "Review"],
+    [isLoggedIn],
   );
 
   async function sendOtp() {
@@ -173,7 +358,6 @@ export default function CheckoutForm() {
       shippingData.address,
       shippingData.city,
       shippingData.zipCode,
-      shippingData.email,
       shippingData.phone,
     ];
     const isValid = required.every((value) => value.trim().length > 0);
@@ -181,6 +365,86 @@ export default function CheckoutForm() {
       setError("Please fill all shipping details before continuing.");
     }
     return isValid;
+  }
+
+  async function persistAddressIfNeeded(): Promise<boolean> {
+    if (!isLoggedIn || !userId) return true;
+
+    const draft = getDraftFromShippingData();
+    const key = draftKey(draft);
+
+    const payload: CreateAddressPayload = {
+      firstName: draft.firstName,
+      lastName: draft.lastName,
+      phone: draft.phone,
+      address: draft.address,
+      city: draft.city,
+      state: draft.state,
+      country: draft.country,
+      postalCode: draft.postalCode,
+      latitude: draft.latitude,
+      longitude: draft.longitude,
+    };
+
+    // If nothing selected yet, only create if the address fields are actually filled.
+    const hasAddressInput =
+      shippingData.address.trim().length > 0 ||
+      shippingData.city.trim().length > 0 ||
+      shippingData.zipCode.trim().length > 0;
+
+    try {
+      setIsPersistingAddress(true);
+
+      if (selectedAddressId) {
+        if (savedAddressDraftKey === key) return true;
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(userId)}/addresses/${encodeURIComponent(
+            selectedAddressId,
+          )}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+        const json = await readJsonSafe(res);
+        if (!res.ok || !json?.ok || !json?.address) {
+          throw new Error((json?.error as string) ?? "Failed to update address.");
+        }
+
+        const updated = json.address as Address;
+        setSavedAddresses((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
+        setSavedAddressDraftKey(draftKeyFromAddress(updated));
+        setSelectedAddressId(updated._id);
+        setAddingNewAddress(false);
+        applyAddressToShippingData(updated);
+        return true;
+      }
+
+      if (!hasAddressInput) return true;
+      const res = await fetch(`/api/users/${encodeURIComponent(userId)}/addresses`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await readJsonSafe(res);
+      if (!res.ok || !json?.ok || !json?.address) {
+        throw new Error((json?.error as string) ?? "Failed to save address.");
+      }
+
+      const created = json.address as Address;
+      setSavedAddresses((prev) => [created, ...prev]);
+      setSelectedAddressId(created._id);
+      setSavedAddressDraftKey(draftKeyFromAddress(created));
+      setAddingNewAddress(false);
+      applyAddressToShippingData(created);
+      return true;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not save address.");
+      return false;
+    } finally {
+      setIsPersistingAddress(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -325,20 +589,23 @@ export default function CheckoutForm() {
           >
             <div className="space-y-8">
               <div className="flex flex-wrap gap-2">
-                {["Shipping", "Verify", "Payment", "Review"].map((label, idx) => (
+                {stepLabels.map((label, idx) => {
+                  const actualStep = isLoggedIn && idx >= 1 ? idx + 1 : idx;
+                  return (
                   <button
                     key={label}
                     type="button"
-                    onClick={() => setStep(idx)}
+                    onClick={() => setStep(actualStep)}
                     className={`rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider ${
-                      step === idx
+                      step === actualStep
                         ? "bg-accent text-accent-foreground"
                         : "border border-border text-muted-foreground"
                     }`}
                   >
                     {idx + 1}. {label}
                   </button>
-                ))}
+                  );
+                })}
               </div>
 
               <AnimatePresence mode="wait">
@@ -354,29 +621,181 @@ export default function CheckoutForm() {
                       Shipping information
                     </legend>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <InputField label="First name" value={shippingData.firstName} onChange={(e) => setShippingData((s) => ({ ...s, firstName: e.target.value }))} />
-                      <InputField label="Last name" value={shippingData.lastName} onChange={(e) => setShippingData((s) => ({ ...s, lastName: e.target.value }))} />
+                      {!hideFirstLastInputs ? (
+                        <>
+                          <InputField
+                            label="First name"
+                            value={shippingData.firstName}
+                            onChange={(e) =>
+                              setShippingData((s) => ({
+                                ...s,
+                                firstName: e.target.value,
+                              }))
+                            }
+                          />
+                          <InputField
+                            label="Last name"
+                            value={shippingData.lastName}
+                            onChange={(e) =>
+                              setShippingData((s) => ({
+                                ...s,
+                                lastName: e.target.value,
+                              }))
+                            }
+                          />
+                        </>
+                      ) : null}
+                      {isLoggedIn ? (
+                        <div className="sm:col-span-2">
+                          <p className="mb-1.5 text-sm font-medium text-foreground">
+                            Saved addresses
+                          </p>
+                          {savedAddresses.length > 0 || addressesLoading || addressesError ? (
+                            <div className="space-y-2">
+                              {addressesLoading ? (
+                                <p className="text-xs text-muted-foreground">
+                                  Loading saved addresses...
+                                </p>
+                              ) : null}
+                              {addressesError ? (
+                                <p className="text-xs text-red-400">
+                                  {addressesError}
+                                </p>
+                              ) : null}
+
+                              {savedAddresses.map((a) => {
+                                const isSelected = selectedAddressId === a._id;
+                                return (
+                                  <button
+                                    key={a._id}
+                                    type="button"
+                                    onClick={() => {
+                                      setAddingNewAddress(false);
+                                      setSelectedAddressId(a._id);
+                                      setSavedAddressDraftKey(
+                                        draftKeyFromAddress(a),
+                                      );
+                                      applyAddressToShippingData(a);
+                                    }}
+                                    className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                                      isSelected
+                                        ? "border-accent bg-accent/10"
+                                        : "border-border bg-surface hover:border-accent/40"
+                                    }`}
+                                  >
+                                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">
+                                      {a.city}
+                                    </p>
+                                    <p className="mt-1 text-sm font-semibold text-foreground">
+                                      {a.address}
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {a.postalCode} • {a.state} • {a.country}
+                                    </p>
+                                  </button>
+                                );
+                              })}
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAddingNewAddress(true);
+                                  setSelectedAddressId(null);
+                                  setSavedAddressDraftKey(null);
+                                  setShippingData((prev) => ({
+                                    ...prev,
+                                    address: "",
+                                    city: "",
+                                    zipCode: "",
+                                    state: "ENG",
+                                    country: "UK",
+                                    latitude: "0",
+                                    longitude: "0",
+                                  }));
+                                }}
+                                className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-foreground transition hover:border-accent hover:text-accent"
+                              >
+                                + Add new address
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                       <div className="sm:col-span-2">
-                        <InputField label="Address" value={shippingData.address} onChange={(e) => setShippingData((s) => ({ ...s, address: e.target.value }))} />
+                        {(!isLoggedIn ||
+                          savedAddresses.length === 0 ||
+                          addingNewAddress) && (
+                          <InputField
+                            label="Address"
+                            value={shippingData.address}
+                            onChange={(e) =>
+                              setShippingData((s) => ({
+                                ...s,
+                                address: e.target.value,
+                              }))
+                            }
+                          />
+                        )}
                       </div>
-                      <InputField label="City" value={shippingData.city} onChange={(e) => setShippingData((s) => ({ ...s, city: e.target.value }))} />
-                      <InputField label="ZIP code" value={shippingData.zipCode} onChange={(e) => setShippingData((s) => ({ ...s, zipCode: e.target.value }))} />
+                      {(!isLoggedIn ||
+                        savedAddresses.length === 0 ||
+                        addingNewAddress) && (
+                        <>
+                          <InputField
+                            label="City"
+                            value={shippingData.city}
+                            onChange={(e) =>
+                              setShippingData((s) => ({
+                                ...s,
+                                city: e.target.value,
+                              }))
+                            }
+                          />
+                          <InputField
+                            label="ZIP code"
+                            value={shippingData.zipCode}
+                            onChange={(e) =>
+                              setShippingData((s) => ({
+                                ...s,
+                                zipCode: e.target.value,
+                              }))
+                            }
+                          />
+                        </>
+                      )}
                       <div className="sm:col-span-2">
                         <InputField label="Email" type="email" value={shippingData.email} onChange={(e) => setShippingData((s) => ({ ...s, email: e.target.value }))} />
                       </div>
-                      <div className="sm:col-span-2">
-                        <InputField label="Phone" value={shippingData.phone} onChange={(e) => setShippingData((s) => ({ ...s, phone: e.target.value }))} />
-                      </div>
+                      {!hidePhoneInput ? (
+                        <div className="sm:col-span-2">
+                          <InputField
+                            label="Phone"
+                            value={shippingData.phone}
+                            onChange={(e) =>
+                              setShippingData((s) => ({
+                                ...s,
+                                phone: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      ) : null}
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         setError(null);
-                        if (validateShipping()) setStep(1);
+                        if (!validateShipping()) return;
+                        if (isLoggedIn) {
+                          const ok = await persistAddressIfNeeded();
+                          if (!ok) return;
+                        }
+                        setStep(isLoggedIn ? 2 : 1);
                       }}
-                      className="h-11 rounded-full bg-accent px-5 text-xs font-bold uppercase tracking-wider text-accent-foreground"
+                      disabled={isPersistingAddress}
+                      className="h-11 rounded-full bg-accent px-5 text-xs font-bold uppercase tracking-wider text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Continue to verify
+                      {isLoggedIn ? "Continue to payment" : "Continue to verify"}
                     </button>
                   </motion.fieldset>
                 )}
@@ -487,7 +906,7 @@ export default function CheckoutForm() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setStep(1)}
+                        onClick={() => setStep(isLoggedIn ? 0 : 1)}
                         className="h-11 rounded-full border border-border px-4 text-xs font-bold uppercase tracking-wider text-foreground"
                       >
                         Back

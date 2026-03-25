@@ -1,0 +1,43 @@
+{
+  "addresses": [
+    {
+      "userId": "69c3926d343b24a3d63026e4",
+      "firstName": "Mohit",
+      "lastName": "Singh",
+      "phone": "3333333333",
+      "address": "G T ROAD S D M COLONY SIKANDRABAD DIST B S R, S D M COLONY SIKANDRABAD DIST BULANDSHAHR",
+      "city": "BULANDSHAHAR",
+      "state": "ENG",
+      "country": "UK",
+      "postalCode": "203205",
+      "latitude": 0,
+      "longitude": 0,
+      "_id": "ADR-MN5VMC9D-B337B4CB"
+    },
+    {
+      "userId": "69c3926d343b24a3d63026e4",
+      "_id": "ADR-MN5V3BS4-983AB915",
+      "firstName": "Mohit",
+      "lastName": "Singh",
+      "phone": "3333333333",
+      "address": "S D M COLONY SIKANDRABAD",
+      "city": "BULANDSHAHR",
+      "state": "ENG",
+      "country": "UK",
+      "postalCode": "203205",
+      "latitude": 0,
+      "longitude": 0
+    },
+    {
+      "userId": "69c3926d343b24a3d63026e4",
+      "address": "G T ROAD S D M COLONY SIKANDRABAD DIST B S R, S D M COLONY SIKANDRABAD DIST BULANDSHAHR",
+      "city": "BULANDSHAHAR",
+      "state": "ENG",
+      "country": "UK",
+      "postalCode": "203205",
+      "latitude": 0,
+      "longitude": 0,
+      "_id": "ADR-MN5UGHQB-23BCCB9C"
+    }
+  ]
+}
