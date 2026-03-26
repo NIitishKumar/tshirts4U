@@ -24,7 +24,6 @@ const UserSchema = new mongoose.Schema({
   otpVerifiedAt: { type: Date },
   otpVerifiedBy: { type: String },
   otpVerifiedAt: { type: Date },
-  address: [AddressSchema],
-});
+  address: [{ type: mongoose.Schema.Types.ObjectId, ref: "Address" }]});
 
 export default mongoose.model("User", UserSchema);

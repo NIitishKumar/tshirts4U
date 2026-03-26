@@ -6,7 +6,7 @@ export const AddressSchema = new mongoose.Schema(
   {
     firstName: { type: String, trim: true },
     lastName: { type: String, trim: true },
-    phoneNo: { type: String, trim: true },
+    phone: { type: String, trim: true },
     address: { type: String, trim: true }, // street address / address line
     city: { type: String, trim: true },
     state: { type: String, trim: true },
@@ -18,3 +18,4 @@ export const AddressSchema = new mongoose.Schema(
   {}
 );
 
+export default mongoose.model("Address", AddressSchema);

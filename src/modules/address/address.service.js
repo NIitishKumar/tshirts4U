@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import User from "../user/user.model.js";
+import Address from "../user/address.model.js";
 
 function cleanString(value) {
   if (value === null || value === undefined) return undefined;
@@ -13,12 +14,13 @@ function cleanNumber(value) {
   return Number.isFinite(n) ? n : undefined;
 }
 
+
 function cleanAddressInput(input) {
   const obj = input ?? {};
   return {
     firstName: cleanString(obj.firstName),
     lastName: cleanString(obj.lastName),
-    phoneNo: cleanString(obj.phoneNo),
+    phone: cleanString(obj.phone),
     address: cleanString(obj.address),
     city: cleanString(obj.city),
     state: cleanString(obj.state),
@@ -39,25 +41,24 @@ function requireAtLeastOneField(addressObj) {
 
 export async function listUserAddresses(userId) {
   if (!isValidUserId(userId)) throw new Error("Invalid userId");
-  const user = await User.findById(userId).select("address");
+  const user = await User.findById(userId).populate("address");
   return user?.address ?? [];
 }
 
 export async function createUserAddress(userId, addressInput) {
   if (!isValidUserId(userId)) throw new Error("Invalid userId");
+  const user = await User.findById(userId);
+  if (!user) return null;
+
   const cleaned = cleanAddressInput(addressInput);
   if (!requireAtLeastOneField(cleaned)) {
     throw new Error("At least one address field is required.");
   }
 
-  const updated = await User.findByIdAndUpdate(
-    userId,
-    { $push: { address: cleaned } },
-    { new: true },
-  ).select("address");
-
-  if (!updated) return null;
-  return updated.address[updated.address.length - 1] ?? null;
+  const address = new Address(cleaned);
+  await address.save();
+  await User.findByIdAndUpdate(userId, { $push: { address: address._id } });
+  return address;
 }
 
 export async function editUserAddress(userId, addressId, addressInput) {
@@ -69,36 +70,36 @@ export async function editUserAddress(userId, addressId, addressInput) {
     throw new Error("At least one address field is required.");
   }
 
-  // Build $set object like: { "address.$.city": "..." }
+  const userHasAddress = await User.exists({ _id: userId, address: addressId });
+  if (!userHasAddress) return null;
+
   const $set = Object.entries(cleaned).reduce((acc, [key, value]) => {
-    if (value !== undefined) acc[`address.$.${key}`] = value;
+    if (value !== undefined) acc[key] = value;
     return acc;
   }, {});
 
-  const updatedUser = await User.findOneAndUpdate(
-    { _id: userId, "address._id": addressId },
+  if (!Object.keys($set).length) return null;
+
+  const updatedAddress = await Address.findByIdAndUpdate(
+    addressId,
     { $set },
     { new: true },
-  ).select("address");
-
-  if (!updatedUser) return null;
-
-  return (
-    updatedUser.address.find((a) => a._id?.toString() === addressId) ?? null
   );
+  return updatedAddress;
 }
 
 export async function deleteUserAddress(userId, addressId) {
   if (!isValidUserId(userId)) throw new Error("Invalid userId");
   if (!mongoose.Types.ObjectId.isValid(addressId)) throw new Error("Invalid addressId");
 
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    { $pull: { address: { _id: addressId } } },
+  const updatedUser = await User.findOneAndUpdate(
+    { _id: userId, address: addressId },
+    { $pull: { address: addressId } },
     { new: true },
-  ).select("address");
+  ).populate("address");
 
   if (!updatedUser) return null;
+  await Address.findByIdAndDelete(addressId);
   return updatedUser.address;
 }
 
