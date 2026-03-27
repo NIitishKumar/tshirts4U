@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCart, type CartItem } from "@/lib/cart-context";
 import type { PaymentMethod } from "@/lib/order-types";
 import type { Address, CreateAddressPayload } from "@/lib/address-types";
+import api, { readApiErrorMessage } from "../services/appi";
 
 function InputField({
   label,
@@ -49,6 +50,7 @@ export default function CheckoutForm() {
   const [otpChallengeId, setOtpChallengeId] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [otpVerified, setOtpVerified] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [otpStatus, setOtpStatus] = useState<string | null>(null);
   const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -118,7 +120,7 @@ export default function CheckoutForm() {
       city: a.city.trim(),
       state: a.state.trim(),
       country: a.country.trim(),
-      postalCode: a.postalCode.trim(),
+      postalCode: a.postalCode?.trim(),
       latitude: a.latitude,
       longitude: a.longitude,
     });
@@ -169,91 +171,34 @@ export default function CheckoutForm() {
   }, []);
 
   useEffect(() => {
-    let active = true;
-    async function loadSession() {
-      try {
-        const res = await fetch("/api/auth/me", { cache: "no-store" });
-        const json = await readJsonSafe(res);
-        if (!active) return;
-        const user =
-          (json?.user as Record<string, unknown> | undefined) ?? undefined;
-        const phone = typeof user?.phone === "string" ? user.phone : "";
-        const email = typeof user?.email === "string" ? user.email : "";
-        const id = typeof user?.id === "string" ? user.id : null;
-        if (res.ok && phone) {
-          setIsLoggedIn(true);
-          setUserId(id);
-          setOtpVerified(true);
-          setOtpStatus("Logged in. OTP verification not required.");
-          setShippingData((prev) => ({
-            ...prev,
-            phone: prev.phone || phone,
-            email: prev.email || email,
-          }));
-          setStep((prev) => (prev === 1 ? 2 : prev));
-        } else {
-          setIsLoggedIn(false);
-          setUserId(null);
-        }
-      } catch {
-        if (active) setIsLoggedIn(false);
-      }
-    }
-    void loadSession();
-    return () => {
-      active = false;
-    };
+    const user = localStorage.getItem("user");
+    if (!user) return;
+    const userData = JSON.parse(user) as User;
+    setIsLoggedIn(true);
+    setUserId(userData._id);
   }, []);
 
   useEffect(() => {
     if (!isLoggedIn || !userId) return;
     const uid = userId;
 
-    let active = true;
     async function loadAddresses() {
       setAddressesLoading(true);
       setAddressesError(null);
       try {
-        const res = await fetch(`/api/users/${encodeURIComponent(uid)}/addresses`, {
-          cache: "no-store",
+        const res = await api.get<{ addresses: Address[] }>(`/api/users/${encodeURIComponent(uid)}/addresses`, {
+          params: {
+            user: userId,
+          },
         });
-        const json = await readJsonSafe(res);
-        const addresses = (json?.addresses ?? undefined) as Address[] | undefined;
-
-        if (!res.ok || !json?.ok || !Array.isArray(addresses)) {
-          throw new Error(
-            (json?.error as string | undefined) ?? "Failed to load saved addresses.",
-          );
-        }
-        if (!active) return;
-
-        setSavedAddresses(addresses);
-
-        const isShippingBlank =
-          shippingData.address.trim().length === 0 &&
-          shippingData.city.trim().length === 0 &&
-          shippingData.zipCode.trim().length === 0;
-
-        if (!selectedAddressId && isShippingBlank && addresses.length > 0) {
-          const first = addresses[0]!;
-          setSelectedAddressId(first._id);
-          setSavedAddressDraftKey(draftKeyFromAddress(first));
-          setAddingNewAddress(false);
-          applyAddressToShippingData(first);
-        }
+        setSavedAddresses(res.data.addresses);
       } catch (e: unknown) {
-        if (!active) return;
         setAddressesError(e instanceof Error ? e.message : "Failed to load saved addresses.");
       } finally {
-        if (active) setAddressesLoading(false);
+        setAddressesLoading(false);
       }
     }
-
     void loadAddresses();
-    return () => {
-      active = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, userId]);
 
   const checkoutItems = useMemo(
@@ -290,6 +235,7 @@ export default function CheckoutForm() {
   async function sendOtp() {
     setError(null);
     setOtpStatus(null);
+    setOtpVerified(false);
     const identifier =
       otpChannel === "email" ? shippingData.email.trim() : shippingData.phone.trim();
     if (!identifier) {
@@ -297,58 +243,106 @@ export default function CheckoutForm() {
       return;
     }
 
-    const res = await fetch("/api/auth/otp/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channel: otpChannel, identifier }),
-    });
-    const json = await readJsonSafe(res);
-    if (!res.ok) {
-      setError((json?.error as string) ?? "Failed to send OTP.");
-      return;
+    setOtpSent(false);
+
+    try {
+      const response = await api.post<{
+        ok?: boolean;
+        error?: string;
+        challengeId?: string;
+        otp?: string;
+        devCode?: string;
+        user?: unknown;
+      }>("/api/auth/login", {
+        channel: otpChannel,
+        identifier,
+        phone: shippingData.phone.trim(),
+      });
+
+      if (response.status >= 400 || !response.data?.ok) {
+        setError(readApiErrorMessage(response.data) ?? (response.data?.error as string) ?? "Failed to send OTP.");
+        return;
+      }
+
+      // Some backends only return `otp` (dev/demo) and omit `challengeId`.
+      // We make challengeId optional so the UI can still enter OTP and verify.
+      const dataRec = (response.data ?? {}) as Record<string, unknown>;
+      const challengeId =
+        typeof response.data?.challengeId === "string"
+          ? response.data.challengeId
+          : typeof dataRec.requestId === "string"
+            ? dataRec.requestId
+            : typeof dataRec.sessionId === "string"
+              ? dataRec.sessionId
+              : "";
+
+      const devOtp =
+        typeof response.data?.otp === "string"
+          ? response.data.otp
+          : typeof response.data?.devCode === "string"
+            ? response.data.devCode
+            : null;
+
+      setOtpIdentifier(identifier);
+      setOtpChallengeId(challengeId);
+      setOtpCode("");
+      setOtpSent(true);
+      setOtpStatus(
+        devOtp
+          ? `OTP sent (check below: ${devOtp})`
+          : "OTP sent. Check inbox/messages.",
+      );
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to send OTP.");
     }
-    const challengeId = typeof json?.challengeId === "string" ? json.challengeId : "";
-    if (!challengeId) {
-      setError("Could not send OTP. Please try again.");
-      return;
-    }
-    setOtpIdentifier(identifier);
-    setOtpChallengeId(challengeId);
-    setOtpVerified(false);
-    setOtpStatus(
-      json?.devCode
-        ? `OTP sent (dev code: ${String(json.devCode)})`
-        : "OTP sent. Check inbox/messages.",
-    );
   }
 
   async function verifyOtp() {
     setError(null);
     setOtpStatus(null);
-    if (!otpChallengeId || !otpCode) {
-      setError("Send OTP and enter the code first.");
+    if (!otpCode.trim()) {
+      setError("Enter the OTP code first.");
       return;
     }
 
-    const res = await fetch("/api/auth/otp/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: shippingData.email.trim(),
+    try {
+      const response = await api.post<{
+        ok?: boolean;
+        error?: string;
+        user?: unknown;
+      }>("/api/auth/verify-otp", {
         phone: shippingData.phone.trim(),
         channel: otpChannel,
         identifier: otpIdentifier,
         challengeId: otpChallengeId,
-        code: otpCode,
-      }),
-    });
-    const json = await readJsonSafe(res);
-    if (!res.ok) {
-      setError((json?.error as string) ?? "OTP verification failed.");
-      return;
+        code: otpCode.trim(),
+        otp: otpCode.trim(),
+      });
+
+      if (response.status >= 400 || !response.data?.ok) {
+        setError(readApiErrorMessage(response.data) ?? (response.data?.error as string) ?? "OTP verification failed.");
+        return;
+      }
+
+      const user = response.data.user;
+      // Persist session cookie so order APIs can associate `userId`.
+      const sessionRes = await fetch("/api/auth/external-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user }),
+      });
+      const sessionJson = await readJsonSafe(sessionRes);
+      if (!sessionRes.ok || !sessionJson?.ok) {
+        setError((sessionJson?.error as string) ?? "Could not start session.");
+        return;
+      }
+
+      setOtpVerified(true);
+      setOtpSent(true);
+      setOtpStatus("OTP verified. You can place the order.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "OTP verification failed.");
     }
-    setOtpVerified(true);
-    setOtpStatus("OTP verified. You can place the order.");
   }
 
   function validateShipping(): boolean {
@@ -397,22 +391,17 @@ export default function CheckoutForm() {
 
       if (selectedAddressId) {
         if (savedAddressDraftKey === key) return true;
-        const res = await fetch(
+        const res = await api.put(
           `/api/users/${encodeURIComponent(userId)}/addresses/${encodeURIComponent(
             selectedAddressId,
           )}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          },
+            payload,
         );
-        const json = await readJsonSafe(res);
-        if (!res.ok || !json?.ok || !json?.address) {
-          throw new Error((json?.error as string) ?? "Failed to update address.");
+        if (res.status >= 400 || !res.data?.ok) {
+          throw new Error((res.data?.error as string) ?? "Failed to update address.");
         }
 
-        const updated = json.address as Address;
+        const updated = res.data.address as Address;
         setSavedAddresses((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
         setSavedAddressDraftKey(draftKeyFromAddress(updated));
         setSelectedAddressId(updated._id);
@@ -422,17 +411,14 @@ export default function CheckoutForm() {
       }
 
       if (!hasAddressInput) return true;
-      const res = await fetch(`/api/users/${encodeURIComponent(userId)}/addresses`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const json = await readJsonSafe(res);
-      if (!res.ok || !json?.ok || !json?.address) {
-        throw new Error((json?.error as string) ?? "Failed to save address.");
+      const res = await api.post(`/api/users/${encodeURIComponent(userId)}/addresses`, 
+        payload,
+      );
+      if (res.status >= 400 || !res.data?.ok) {
+        throw new Error((res.data?.error as string) ?? "Failed to save address.");
       }
 
-      const created = json.address as Address;
+      const created = res.data.address as Address;
       setSavedAddresses((prev) => [created, ...prev]);
       setSelectedAddressId(created._id);
       setSavedAddressDraftKey(draftKeyFromAddress(created));
@@ -763,9 +749,9 @@ export default function CheckoutForm() {
                           />
                         </>
                       )}
-                      <div className="sm:col-span-2">
+                      {/* <div className="sm:col-span-2">
                         <InputField label="Email" type="email" value={shippingData.email} onChange={(e) => setShippingData((s) => ({ ...s, email: e.target.value }))} />
-                      </div>
+                      </div> */}
                       {!hidePhoneInput ? (
                         <div className="sm:col-span-2">
                           <InputField
@@ -812,60 +798,85 @@ export default function CheckoutForm() {
                       Verify account (OTP)
                     </legend>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      {(["email", "phone"] as const).map((channel) => (
-                        <button
-                          key={channel}
-                          type="button"
-                          onClick={() => setOtpChannel(channel)}
-                          className={`h-11 rounded-xl border text-sm font-semibold uppercase tracking-wide transition ${
-                            otpChannel === channel
-                              ? "border-accent bg-accent/10 text-accent"
-                              : "border-border bg-surface text-muted-foreground hover:border-accent/40"
-                          }`}
-                        >
-                          {channel}
-                        </button>
-                      ))}
+                      {!otpSent ? (
+                        (["email", "phone"] as const).map((channel) => (
+                          <button
+                            key={channel}
+                            type="button"
+                            onClick={() => {
+                              setOtpChannel(channel);
+                              setOtpSent(false);
+                              setOtpVerified(false);
+                              setOtpCode("");
+                              setOtpChallengeId("");
+                              setOtpStatus(null);
+                            }}
+                            className={`h-11 rounded-xl border text-sm font-semibold uppercase tracking-wide transition ${
+                              otpChannel === channel
+                                ? "border-accent bg-accent/10 text-accent"
+                                : "border-border bg-surface text-muted-foreground hover:border-accent/40"
+                            }`}
+                          >
+                            {channel}
+                          </button>
+                        ))
+                      ) : null}
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void sendOtp()}
-                        className="h-11 rounded-full border border-border px-4 text-xs font-bold uppercase tracking-wider text-foreground"
-                      >
-                        Send OTP
-                      </button>
-                      <input
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value)}
-                        placeholder="Enter OTP"
-                        className="h-11 flex-1 rounded-xl border border-border bg-surface px-4 text-sm text-foreground outline-none focus:border-accent"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => void verifyOtp()}
-                        className="h-11 rounded-full bg-accent px-4 text-xs font-bold uppercase tracking-wider text-accent-foreground"
-                      >
-                        Verify
-                      </button>
+                      {!otpSent ? (
+                        <button
+                          type="button"
+                          onClick={() => void sendOtp()}
+                          className="h-11 rounded-full border border-border px-4 text-xs font-bold uppercase tracking-wider text-foreground"
+                        >
+                          Send OTP
+                        </button>
+                      ) : (
+                        <>
+                          <input
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value)}
+                            placeholder="Enter OTP"
+                            className="h-11 flex-1 rounded-xl border border-border bg-surface px-4 text-sm text-foreground outline-none focus:border-accent"
+                          />
+                          {!otpVerified ? (
+                            <button
+                              type="button"
+                              disabled={!otpCode.trim()}
+                              onClick={() => void verifyOtp()}
+                              className="h-11 rounded-full bg-accent px-4 text-xs font-bold uppercase tracking-wider text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Verify
+                            </button>
+                          ) : null}
+                        </>
+                      )}
                     </div>
                     {otpStatus ? <p className="text-xs text-success">{otpStatus}</p> : null}
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setStep(0)}
+                        onClick={() => {
+                          setStep(0);
+                          setOtpSent(false);
+                          setOtpVerified(false);
+                          setOtpChallengeId("");
+                          setOtpCode("");
+                          setOtpStatus(null);
+                        }}
                         className="h-11 rounded-full border border-border px-4 text-xs font-bold uppercase tracking-wider text-foreground"
                       >
                         Back
                       </button>
-                      <button
-                        type="button"
-                        disabled={!otpVerified}
-                        onClick={() => setStep(2)}
-                        className="h-11 rounded-full bg-accent px-4 text-xs font-bold uppercase tracking-wider text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Continue to payment
-                      </button>
+                      {otpVerified ? (
+                        <button
+                          type="button"
+                          onClick={() => setStep(2)}
+                          className="h-11 rounded-full bg-accent px-4 text-xs font-bold uppercase tracking-wider text-accent-foreground"
+                        >
+                          Continue to payment
+                        </button>
+                      ) : null}
                     </div>
                   </motion.fieldset>
                 )}
@@ -936,6 +947,70 @@ export default function CheckoutForm() {
                     <p className="text-sm text-muted-foreground">
                       Please review the order summary and click place order when ready.
                     </p>
+
+                    <div className="space-y-3 rounded-2xl border border-border bg-surface p-4">
+                      <h3 className="font-display text-sm uppercase tracking-tight text-foreground">
+                        Delivery address
+                      </h3>
+                      <p className="text-sm font-semibold text-foreground">
+                        {shippingData.firstName} {shippingData.lastName}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {shippingData.phone}
+                        {shippingData.email ? ` • ${shippingData.email}` : ""}
+                      </p>
+                      <p className="text-sm text-foreground">
+                        {shippingData.address}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {shippingData.city} • {shippingData.zipCode}
+                        {shippingData.state ? ` • ${shippingData.state}` : ""}
+                        {shippingData.country ? ` • ${shippingData.country}` : ""}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 rounded-2xl border border-border bg-surface p-4">
+                      <h3 className="font-display text-sm uppercase tracking-tight text-foreground">
+                        Payment
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Method:{" "}
+                        <span className="font-semibold text-foreground">
+                          {paymentMethod.toUpperCase()}
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 rounded-2xl border border-border bg-surface p-4">
+                      <h3 className="font-display text-sm uppercase tracking-tight text-foreground">
+                        Items
+                      </h3>
+                      <div className="space-y-2">
+                        {checkoutItems.map((item) => (
+                          <div
+                            key={`${item.slug}-${item.size}-${item.color}`}
+                            className="flex justify-between gap-3 text-sm"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-foreground">
+                                {item.name ?? item.slug}
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  ({item.size}, {item.color})
+                                </span>
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Qty: {item.quantity}
+                              </p>
+                            </div>
+                            <p className="text-foreground">
+                              ${(item.price * item.quantity).toFixed(2)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="flex gap-2">
                       <button
                         type="button"
