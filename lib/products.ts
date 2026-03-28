@@ -10,6 +10,11 @@ export type Category = "basics" | "graphic" | "oversized" | "premium";
 export type Badge = "best-seller" | "trending" | "new" | null;
 
 export interface Product {
+  _id: string;
+  categoryId: {
+    _id: string;
+    name: string;
+  };
   slug: string;
   sku: string;
   name: string;

@@ -1,26 +1,29 @@
-import type { Metadata } from "next";
-import { products, categories } from "@/lib/products";
+"use client";
+
+import { useState, useEffect, use } from "react";
+import { categories, Product } from "@/lib/products";
 import ProductGrid from "@/components/ProductGrid";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ShopFilters from "./ShopFilters";
 import AnimatedSection from "@/components/AnimatedSection";
+import api from "../services/appi";
 
-export const metadata: Metadata = {
-  title: "Shop Streetwear T-Shirts — Graphic Tees, Oversized & Basics",
-  description:
-    "Browse our full collection of premium streetwear t-shirts. Graphic tees, oversized fits, heavyweight basics, and luxury cotton — all with free shipping over $75.",
-  alternates: { canonical: "/shop" },
-};
+export default function ShopPage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
+  const { category } = use(searchParams);
 
-export default async function ShopPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ category?: string }>;
-}) {
-  const { category } = await searchParams;
+  const [products, setProducts] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const {data} = await api.get<{products: Product[], total: number}>(`/api/products?category=${category}`);
+      setProducts(data?.products ?? []);
+    };
+    fetchProducts();
+  }, [category]);
 
   const filtered = category
-    ? products.filter((p) => p.category === category)
+    ? products?.filter((p) => p.category === category) ?? []
     : products;
 
   const categoryLabel = category

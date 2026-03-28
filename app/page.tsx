@@ -1,21 +1,17 @@
-import type { Metadata } from "next";
+'use client';
 import Link from "next/link";
 import Image from "next/image";
 import { Truck, RotateCcw, Heart, Shield } from "lucide-react";
 
-export const metadata: Metadata = {
-  title:
-    "tshirts4U — Premium Streetwear T-Shirts | Graphic Tees & Basics",
-  description:
-    "Shop premium streetwear t-shirts at tshirts4U. Bold graphic tees, oversized fits, heavyweight cotton basics, and luxury fabrics. Free shipping on orders over $75.",
-  alternates: { canonical: "/" },
-};
 import Hero from "@/components/Hero";
 import ProductGrid from "@/components/ProductGrid";
 import AnimatedSection from "@/components/AnimatedSection";
 import Newsletter from "@/components/Newsletter";
 import Testimonials from "@/components/Testimonials";
-import { getFeaturedProducts, products, categories } from "@/lib/products";
+import { products, categories, Product } from "@/lib/products";
+import type { ApiCategory, CategoriesListResponse } from "@/lib/categories-api";
+import { useEffect, useMemo, useState } from "react";
+import api from "./services/appi";
 
 const categoryImages: Record<string, string> = {
   basics:
@@ -27,6 +23,8 @@ const categoryImages: Record<string, string> = {
   premium:
     "https://images.unsplash.com/photo-1618354691438-25bc04584c23?w=400&h=500&fit=crop&auto=format&q=80",
 };
+
+const defaultCategoryImage = categoryImages.basics;
 
 const trustSignals = [
   {
@@ -52,7 +50,35 @@ const trustSignals = [
 ];
 
 export default function Home() {
-  const featured = getFeaturedProducts();
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [categoriesFromApi, setCategoriesFromApi] = useState<ApiCategory[] | null>(
+    null,
+  );
+  const limit: number = 4;
+
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      const { data } = await api.get<{ products: Product[] }>(
+        `/api/products/featured?limit=${limit}`,
+      );
+      setFeaturedProducts(data?.products ?? []);
+    };
+    fetchFeaturedProducts();
+  }, [limit]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data } = await api.get<CategoriesListResponse>(
+        "/api/categories?isActive=true",
+      );
+      if (data?.ok && Array.isArray(data.categories)) {
+        setCategoriesFromApi(data.categories);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+
   const bestSellers = products.filter((p) => p.badge === "best-seller");
 
   return (
@@ -95,7 +121,7 @@ export default function Home() {
         </AnimatedSection>
 
         <div className="mt-12">
-          <ProductGrid products={featured} />
+          <ProductGrid products={featuredProducts} />
         </div>
 
         <div className="mt-10 text-center sm:hidden">
@@ -133,18 +159,17 @@ export default function Home() {
             Shop by category
           </h2>
         </AnimatedSection>
-
         <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {categories.map((cat, i) => (
-            <AnimatedSection key={cat.value} delay={i * 0.08}>
+          {categoriesFromApi?.map((cat, i) => (
+            <AnimatedSection key={cat._id} delay={i * 0.08}>
               <Link
-                href={`/shop?category=${cat.value}`}
+                href={`/product/${cat._id}`}
                 className="group relative block overflow-hidden rounded-2xl"
               >
                 <div className="relative aspect-[3/4]">
                   <Image
-                    src={categoryImages[cat.value]}
-                    alt={`${cat.label} streetwear t-shirts — shop ${cat.label.toLowerCase()} collection at tshirts4U`}
+                    src={categoryImages[cat.slug] ?? defaultCategoryImage}
+                    alt={`${cat.name} streetwear t-shirts — shop ${cat.name.toLowerCase()} collection at tshirts4U`}
                     fill
                     sizes="(max-width: 640px) 50vw, 25vw"
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -152,7 +177,7 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-5">
                     <span className="font-display text-2xl uppercase tracking-tight text-white">
-                      {cat.label}
+                      {cat.name}
                     </span>
                     <span className="mt-1 block text-xs font-medium text-white/70 transition-colors group-hover:text-white">
                       Explore &rarr;

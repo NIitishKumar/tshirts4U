@@ -39,7 +39,8 @@ export default function ProductCard({
         ease: [0.4, 0, 0.2, 1],
       }}
     >
-      <Link href={`/product/${product.slug}`} className="group block">
+      {console.log({product})}
+      <Link href={`/product/${product?.categoryId?._id}`} className="group block">
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted">
           <Image
             src={product.images[0]}

@@ -32,6 +32,7 @@ export default function ShopFilters({
               : "border border-border bg-surface text-muted-foreground hover:border-accent/40 hover:text-foreground"
           }`}
         >
+          {console.log({cat})}
           {cat.label}
         </Link>
       ))}

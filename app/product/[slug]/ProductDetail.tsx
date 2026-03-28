@@ -12,6 +12,7 @@ import ColorSelector from "@/components/ColorSelector";
 import VirtualTryOn from "@/components/VirtualTryOn";
 
 export default function ProductDetail({ product }: { product: Product }) {
+  console.log({product});
   const { addItem } = useCart();
   const router = useRouter();
   const [selectedSize, setSelectedSize] = useState<Size | null>(null);
