@@ -4,6 +4,8 @@ import authRoutes from "./modules/auth/auth.routes.js";
 import addressRoutes from "./modules/address/address.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
 import virtualTryOnRoutes from "./modules/virtualTryOn/virtualTryOn.routes.js";
+import productsRoutes from "./modules/products/products.routes.js";
+import categoryRoutes from "./modules/category/category.routes.js";
 
 export function createApp() {
   const app = express();
@@ -14,6 +16,8 @@ export function createApp() {
   });
 
   app.use(virtualTryOnRoutes);
+  app.use("/api/categories", categoryRoutes);
+  app.use("/api/products", productsRoutes);
   app.use("/api/users", addressRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/auth", authRoutes);
