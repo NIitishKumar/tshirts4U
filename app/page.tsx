@@ -51,6 +51,7 @@ const trustSignals = [
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [bestSellers, setBestSellers] = useState<Product[]>([]);
   const [categoriesFromApi, setCategoriesFromApi] = useState<ApiCategory[] | null>(
     null,
   );
@@ -79,7 +80,15 @@ export default function Home() {
   }, []);
 
 
-  const bestSellers = products.filter((p) => p.badge === "best-seller");
+  useEffect(() => {
+    const fetchBestSellers = async () => {
+      const { data } = await api.get<{ products: Product[] }>(
+        `/api/products/best-sellers?limit=${limit}`,
+      );
+      setBestSellers(data?.products ?? []);
+    };
+    fetchBestSellers();
+  }, [limit]);
 
   return (
     <>
@@ -163,7 +172,7 @@ export default function Home() {
           {categoriesFromApi?.map((cat, i) => (
             <AnimatedSection key={cat._id} delay={i * 0.08}>
               <Link
-                href={`/product/${cat._id}`}
+                href={`/product/category/${cat._id}`}
                 className="group relative block overflow-hidden rounded-2xl"
               >
                 <div className="relative aspect-[3/4]">

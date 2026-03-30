@@ -4,7 +4,11 @@ import axios from "axios";
  * Do not throw on 4xx/5xx so callers can read JSON bodies like `{ ok: false, error: "Invalid OTP" }`.
  */
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  /**
+   * Same-origin `/api/...` so Next.js `rewrites` can proxy to `NEXT_PUBLIC_API_URL` / `BACKEND_URL`.
+   * Set one of those env vars to your backend base (e.g. http://127.0.0.1:4000), no trailing slash.
+   */
+  baseURL: "",
   headers: {
     "Content-Type": "application/json",
   },

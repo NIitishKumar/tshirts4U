@@ -80,8 +80,17 @@ function unsplash(
   return `https://images.unsplash.com/${photoId}?w=${w}&h=${h}&fit=crop&crop=${crop}&auto=format&q=80`;
 }
 
+const categoryIdByValue: Record<Category, { _id: string; name: string }> = {
+  basics: { _id: "cat-basics", name: "Basics" },
+  graphic: { _id: "cat-graphic", name: "Graphic" },
+  oversized: { _id: "cat-oversized", name: "Oversized" },
+  premium: { _id: "cat-premium", name: "Premium" },
+};
+
 export const products: Product[] = [
   {
+    _id: "local-classic-white-tee",
+    categoryId: categoryIdByValue.basics,
     slug: "classic-white-tee",
     sku: "T4U-CW-001",
     name: "Classic White Tee",
@@ -104,6 +113,8 @@ export const products: Product[] = [
     badge: "best-seller",
   },
   {
+    _id: "local-soft-charcoal",
+    categoryId: categoryIdByValue.basics,
     slug: "soft-charcoal",
     sku: "T4U-SC-002",
     name: "Soft Charcoal Tee",
@@ -125,6 +136,8 @@ export const products: Product[] = [
     badge: null,
   },
   {
+    _id: "local-sunset-graphic",
+    categoryId: categoryIdByValue.graphic,
     slug: "sunset-graphic",
     sku: "T4U-SG-003",
     name: "Sunset Graphic Tee",
@@ -150,6 +163,8 @@ export const products: Product[] = [
     badge: "trending",
   },
   {
+    _id: "local-oversized-cloud",
+    categoryId: categoryIdByValue.oversized,
     slug: "oversized-cloud",
     sku: "T4U-OC-004",
     name: "Oversized Cloud Tee",
@@ -172,6 +187,8 @@ export const products: Product[] = [
     badge: "new",
   },
   {
+    _id: "local-botanical-print",
+    categoryId: categoryIdByValue.graphic,
     slug: "botanical-print",
     sku: "T4U-BP-005",
     name: "Botanical Print Tee",
@@ -193,6 +210,8 @@ export const products: Product[] = [
     badge: "new",
   },
   {
+    _id: "local-pima-luxe",
+    categoryId: categoryIdByValue.premium,
     slug: "pima-luxe",
     sku: "T4U-PL-006",
     name: "Pima Luxe Tee",
@@ -215,6 +234,8 @@ export const products: Product[] = [
     badge: null,
   },
   {
+    _id: "local-vintage-stripe",
+    categoryId: categoryIdByValue.graphic,
     slug: "vintage-stripe",
     sku: "T4U-VS-007",
     name: "Vintage Stripe Tee",
@@ -236,6 +257,8 @@ export const products: Product[] = [
     badge: null,
   },
   {
+    _id: "local-relaxed-oat",
+    categoryId: categoryIdByValue.oversized,
     slug: "relaxed-oat",
     sku: "T4U-RO-008",
     name: "Relaxed Oat Tee",
@@ -257,6 +280,8 @@ export const products: Product[] = [
     badge: "trending",
   },
   {
+    _id: "local-essential-black",
+    categoryId: categoryIdByValue.basics,
     slug: "essential-black",
     sku: "T4U-EB-009",
     name: "Essential Black Tee",
@@ -275,6 +300,8 @@ export const products: Product[] = [
     badge: "best-seller",
   },
   {
+    _id: "local-heritage-heavy",
+    categoryId: categoryIdByValue.premium,
     slug: "heritage-heavy",
     sku: "T4U-HH-010",
     name: "Heritage Heavyweight",
@@ -306,6 +333,41 @@ export const categories: { value: Category; label: string }[] = [
 
 export function getProductBySlug(slug: string): Product | undefined {
   return products.find((p) => p.slug === slug);
+}
+
+function isProductShape(x: unknown): x is Product {
+  if (!x || typeof x !== "object") return false;
+  const o = x as Record<string, unknown>;
+  return (
+    typeof o._id === "string" &&
+    typeof o.slug === "string" &&
+    typeof o.name === "string"
+  );
+}
+
+/** Normalize common API envelope shapes into a single Product. */
+export function parseProductFromApiResponse(payload: unknown): Product | null {
+  if (payload == null) return null;
+  if (typeof payload === "string") return null;
+  if (typeof payload !== "object") return null;
+  const o = payload as Record<string, unknown>;
+  if (isProductShape(o)) return o;
+  if (o.product != null) {
+    const p = parseProductFromApiResponse(o.product);
+    if (p) return p;
+  }
+  if (Array.isArray(o.products) && o.products[0]) {
+    const p = parseProductFromApiResponse(o.products[0]);
+    if (p) return p;
+  }
+  if (o.data != null) {
+    const p = parseProductFromApiResponse(o.data);
+    if (p) return p;
+  }
+  if (o.success === true && o.data != null) {
+    return parseProductFromApiResponse(o.data);
+  }
+  return null;
 }
 
 export function getProductsByCategory(category: Category): Product[] {
