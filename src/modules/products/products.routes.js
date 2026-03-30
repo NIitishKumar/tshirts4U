@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getFeaturedProducts,
+  getBestSellerProducts,
   getProduct,
   getProducts,
   getProductsByCategory,
@@ -22,6 +23,7 @@ const router = Router();
 
 router.get("/", validateListProductsQuery, getProducts);
 router.get("/featured", getFeaturedProducts);
+router.get("/best-sellers", getBestSellerProducts);
 router.get(
   "/by-category/:categorySlug",
   validateCategorySlugParam,

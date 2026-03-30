@@ -84,3 +84,19 @@ export async function updateProduct(productId, patch) {
 export async function deleteProduct(productId) {
   return ProductSchema.findByIdAndDelete(productId);
 }
+
+export async function listBestSellers({ limit = 3 } = {}) {
+  const safeLimit =
+    typeof limit === "number" && limit > 0
+      ? Math.min(Math.floor(limit), 10)
+      : 3;
+
+  const query = ProductSchema.find({
+    badge: "best-seller",
+    isActive: true,
+  })
+    .sort({ createdAt: -1 })
+    .limit(safeLimit);
+
+  return buildPopulateQuery(query);
+}

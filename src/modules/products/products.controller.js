@@ -2,6 +2,7 @@ import {
   createProduct,
   deleteProduct,
   getProductById,
+  listBestSellers,
   listProducts,
   listProductsByCategory,
   listProductsByCategorySlug,
@@ -39,6 +40,32 @@ export async function getFeaturedProducts(req, res) {
       isActive: true,
       ...(limit ? { limit } : {}),
     });
+    res.json({ ok: true, products });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err?.message ?? "Bad request" });
+  }
+}
+
+/**
+ * Best seller collection: active products with badge === "best-seller".
+ * Optional query: limit (default 3, max 10).
+ */
+export async function getBestSellerProducts(req, res) {
+  try {
+    const raw = req.query?.limit;
+    let limit;
+    if (raw !== undefined && raw !== "") {
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 1) {
+        res.status(400).json({ ok: false, error: "limit must be a positive number." });
+        return;
+      }
+      limit = Math.floor(n);
+    }
+
+    const products = await listBestSellers(
+      limit !== undefined ? { limit } : undefined,
+    );
     res.json({ ok: true, products });
   } catch (err) {
     res.status(400).json({ ok: false, error: err?.message ?? "Bad request" });
