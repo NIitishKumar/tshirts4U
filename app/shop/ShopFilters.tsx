@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import type { ShopCategoryFilter } from "@/lib/categories-api";
+import type { Category } from "@/lib/products";
 
 export default function ShopFilters({
   categories,
   activeCategory,
 }: {
-  categories: ShopCategoryFilter[];
+  categories: {value: string, label: string}[];
   activeCategory?: string;
 }) {
   return (
@@ -24,7 +24,7 @@ export default function ShopFilters({
       </Link>
       {categories.map((cat) => (
         <Link
-          key={cat._id}
+          key={cat.value}
           href={`/shop?category=${encodeURIComponent(cat.value)}`}
           className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
             activeCategory === cat.value

@@ -9,7 +9,7 @@ import AnimatedSection from "@/components/AnimatedSection";
 import api from "../services/appi";
 
 export default function ShopPage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
-  const { category } = use(searchParams) as { category?: string } | undefined;
+  const { category } = use(searchParams) as { category?: string } | undefined ?? {};
 
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
@@ -44,10 +44,10 @@ export default function ShopPage({ searchParams }: { searchParams: Promise<{ cat
     <div className="mx-auto max-w-7xl px-6 pt-28 pb-24 lg:px-8">
       <AnimatedSection className="text-center">
         <p className="text-xs font-medium uppercase tracking-[0.25em] text-accent">
-          {(categoriesFromApi?.find((c) => c._id === category)?.name) || "The collection"}
+          {(categoriesFromApi?.find((c: Category) => c._id === category)?.name) || "The collection"}
         </p>
         <h1 className="mt-2 font-display text-4xl uppercase tracking-tighter text-foreground sm:text-6xl">
-          {(categoriesFromApi?.find((c) => c._id === category)?.name) || "The collection"}
+          {(categoriesFromApi?.find((c: Category) => c._id === category)?.name) || "The collection"}
         </h1>
         <p className="mt-2 text-sm tracking-wide text-muted-foreground">
           {products.length} premium streetwear{" "}

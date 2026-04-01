@@ -13,7 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   const categoryRoutes: MetadataRoute.Sitemap = categories.map((c) => ({
-    url: `${base}/shop?category=${c.value}`,
+    url: `${base}/shop?category=${c._id}`,
     lastModified: now,
     changeFrequency: "weekly" as const,
     priority: 0.85,

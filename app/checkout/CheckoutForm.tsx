@@ -9,6 +9,7 @@ import { useCart, type CartItem } from "@/lib/cart-context";
 import type { PaymentMethod } from "@/lib/order-types";
 import type { Address, CreateAddressPayload } from "@/lib/address-types";
 import api, { readApiErrorMessage } from "../services/appi";
+import { User } from "@/lib/auth-types";
 
 function InputField({
   label,
@@ -175,7 +176,7 @@ export default function CheckoutForm() {
     if (!user) return;
     const userData = JSON.parse(user) as User;
     setIsLoggedIn(true);
-    setUserId(userData._id);
+    setUserId(userData.id ?? null);
   }, []);
 
   useEffect(() => {

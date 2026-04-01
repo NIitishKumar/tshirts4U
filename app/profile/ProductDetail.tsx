@@ -102,7 +102,7 @@ export default function ProductDetail({ product }: { product: Product }) {
       {/* Info */}
       <div className="flex flex-col justify-center">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent">
-          {product.category}
+          {product.categoryId.name}
         </p>
         <h1 className="mt-2 font-display text-4xl uppercase tracking-tighter text-foreground sm:text-5xl">
           {product.name}
