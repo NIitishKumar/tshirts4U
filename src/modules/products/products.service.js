@@ -58,7 +58,19 @@ export async function listProductsByCategorySlug(
   categorySlug,
   { onlyActiveProducts = true, onlyActiveCategory = true } = {},
 ) {
-  const category = await Category.findOne({ slug: categorySlug });
+
+  if (categorySlug === 'undefined' || !categorySlug) {
+    try {
+      const products = await ProductSchema.find({});
+      return { category: null, products };
+    } catch (error) {
+      console.error("Error listing products:", error);
+      return null;
+    }
+  }
+
+  const category = await Category.findOne({ _id: categorySlug });
+
   if (!category) return null;
   if (onlyActiveCategory && !category.isActive) return null;
 

@@ -26,7 +26,6 @@ router.get("/featured", getFeaturedProducts);
 router.get("/best-sellers", getBestSellerProducts);
 router.get(
   "/by-category/:categorySlug",
-  validateCategorySlugParam,
   getProductsByCategorySlug,
 );
 router.get("/category/:categoryId", validateCategoryIdParam, getProductsByCategory);
