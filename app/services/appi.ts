@@ -8,7 +8,7 @@ const api = axios.create({
    * Same-origin `/api/...` so Next.js `rewrites` can proxy to `NEXT_PUBLIC_API_URL` / `BACKEND_URL`.
    * Set one of those env vars to your backend base (e.g. http://127.0.0.1:4000), no trailing slash.
    */
-  baseURL: "",
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "",
   headers: {
     "Content-Type": "application/json",
   },
