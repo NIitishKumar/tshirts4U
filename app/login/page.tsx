@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
 import api, { readApiErrorMessage } from "../services/appi";
 
@@ -14,8 +14,16 @@ type LoginSendResponse = {
   devCode?: string;
 };
 
-export default function LoginPage() {
+export default function LoginPage({
+  redirect,
+  onLoggedIn,
+}: {
+  redirect?: string;
+  /** When login is embedded (e.g. product page), re-sync parent state — same-URL router.push is a no-op. */
+  onLoggedIn?: () => void;
+}) {
   const router = useRouter();
+  const pathname = usePathname();
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [step, setStep] = useState<"phone" | "otp">("phone");
@@ -97,7 +105,6 @@ export default function LoginPage() {
         return;
       }
       localStorage.setItem("user", JSON.stringify(data.user));
-
       const { data: sessionData, status: sessionStatus } = await api.post<{
         ok?: boolean;
         error?: string;
@@ -109,7 +116,12 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/shop");
+      onLoggedIn?.();
+
+      const dest = redirect ?? "/shop";
+      if (pathname !== dest) {
+        router.push(dest);
+      }
       router.refresh();
     } catch (e: unknown) {
       if (axios.isAxiosError(e) && e.response) {

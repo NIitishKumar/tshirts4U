@@ -1,23 +1,53 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, startTransition } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Product, Size, ProductColor } from "@/lib/products";
-import { useCart } from "@/lib/cart-context";
 import SizeSelector from "@/components/SizeSelector";
 import ColorSelector from "@/components/ColorSelector";
 import VirtualTryOn from "@/components/VirtualTryOn";
+import api from "@/app/services/appi";
+import LoginPage from "@/app/login/page";
+
+type StoredUser = { _id?: string; id?: string };
+
+function readStoredUser(): StoredUser | null {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return null;
+    const o = parsed as StoredUser;
+    return o._id ?? o.id ? o : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function ProductDetail({
   product,
 }: {
   product: Product;
 }) {
-  const { addItem } = useCart();
   const router = useRouter();
+  const pathname = usePathname();
+  const [storedUser, setStoredUser] = useState<StoredUser | null | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    startTransition(() => {
+      setStoredUser(readStoredUser());
+    });
+  }, []);
+
+  const userId =
+    storedUser && (storedUser._id ?? storedUser.id)
+      ? String(storedUser._id ?? storedUser.id)
+      : null;
 
   const [selectedSize, setSelectedSize] = useState<Size | null>(null);
   const [selectedColor, setSelectedColor] = useState<ProductColor>(
@@ -28,20 +58,24 @@ export default function ProductDetail({
   const [tryOnOpen, setTryOnOpen] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
 
-  function handleAdd() {
-    if (!selectedSize) return;
-
-    addItem({
-      slug: product.slug,
-      name: product.name,
-      price: product.price,
-      size: selectedSize,
-      color: selectedColor.name,
-      image: product.images[0],
-    });
-
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+  async function handleAdd() {
+    if (!selectedSize || !userId) return;
+    try {
+      const { data } = await api.post<{ success?: boolean; message?: string }>(
+        `/api/users/${userId}/cart/items`,
+        {
+          productId: product._id,
+          size: selectedSize,
+          color: selectedColor.name,
+          count: 1,
+        },
+      );
+      if (data && "success" in data && data.success === false) return;
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   async function handleBuyNow() {
@@ -63,6 +97,29 @@ export default function ProductDetail({
     );
     setBuyingNow(true);
     router.push("/checkout");
+  }
+
+  if (storedUser === undefined) {
+    return (
+      <div className="py-12">
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    const redirectTo =
+      pathname && pathname.startsWith("/product/")
+        ? pathname
+        : `/product/${product.slug ?? product._id}`;
+    return (
+      <LoginPage
+        redirect={redirectTo}
+        onLoggedIn={() => {
+          startTransition(() => setStoredUser(readStoredUser()));
+        }}
+      />
+    );
   }
 
   return (
