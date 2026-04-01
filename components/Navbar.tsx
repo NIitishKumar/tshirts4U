@@ -1,13 +1,38 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ShoppingBag, Menu, X, Sun, Moon, User } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useTheme } from "@/lib/theme-context";
+import { authPayloadFromExternalUser } from "@/lib/map-external-auth-user";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+function readLoggedInLabelFromLocalStorage(): string | null {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    const payload = authPayloadFromExternalUser(parsed);
+    if (payload?.phone) return payload.phone;
+    if (parsed && typeof parsed === "object") {
+      const o = parsed as Record<string, unknown>;
+      const hasId =
+        (typeof o._id === "string" && o._id) || (typeof o.id === "string" && o.id);
+      if (hasId) {
+        const p = typeof o.phone === "string" ? o.phone.trim() : "";
+        return p || "Account";
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export default function Navbar() {
+  const pathname = usePathname();
   const { totalItems } = useCart();
   const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
@@ -21,34 +46,47 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    async function loadSession() {
-      try {
-        const res = await fetch("/api/auth/me", { cache: "no-store" });
-        const json = await res.json();
-        if (!active) return;
-        if (res.ok && json?.user?.phone) {
-          setUserPhone(json.user.phone);
-        } else {
-          setUserPhone(null);
-        }
-      } catch {
-        if (active) setUserPhone(null);
-      } finally {
-        if (active) setAuthLoading(false);
+  const resolveSession = useCallback(async () => {
+    setAuthLoading(true);
+    try {
+      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      const json = await res.json();
+      if (res.ok && json?.user?.phone) {
+        setUserPhone(
+          typeof json.user.phone === "string" ? json.user.phone : null,
+        );
+        return;
       }
+      setUserPhone(readLoggedInLabelFromLocalStorage());
+    } catch {
+      setUserPhone(readLoggedInLabelFromLocalStorage());
+    } finally {
+      setAuthLoading(false);
     }
-    void loadSession();
-    return () => {
-      active = false;
-    };
   }, []);
+
+  useEffect(() => {
+    void resolveSession();
+  }, [pathname, resolveSession]);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "user") void resolveSession();
+    };
+    const onAuthChanged = () => void resolveSession();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("tshirts4u-auth-changed", onAuthChanged);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("tshirts4u-auth-changed", onAuthChanged);
+    };
+  }, [resolveSession]);
 
   async function handleLogout() {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {
+      localStorage.removeItem("user");
       setUserPhone(null);
       window.location.href = "/";
     }

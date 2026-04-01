@@ -116,6 +116,8 @@ export default function LoginPage({
         return;
       }
 
+      window.dispatchEvent(new Event("tshirts4u-auth-changed"));
+
       onLoggedIn?.();
 
       const dest = redirect ?? "/shop";
