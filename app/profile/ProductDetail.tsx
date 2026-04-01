@@ -12,7 +12,6 @@ import ColorSelector from "@/components/ColorSelector";
 import VirtualTryOn from "@/components/VirtualTryOn";
 
 export default function ProductDetail({ product }: { product: Product }) {
-  console.log({product});
   const { addItem } = useCart();
   const router = useRouter();
   const [selectedSize, setSelectedSize] = useState<Size | null>(null);
@@ -23,17 +22,25 @@ export default function ProductDetail({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
   const [tryOnOpen, setTryOnOpen] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
-  function handleAdd() {
+  async function handleAdd() {
     if (!selectedSize) return;
-    addItem({
+    setAddError(null);
+    const result = await addItem({
+      productId: product._id,
       slug: product.slug,
       name: product.name,
       price: product.price,
       size: selectedSize,
       color: selectedColor.name,
       image: product.images[0],
+      quantity: 1,
     });
+    if (!result.ok) {
+      setAddError(result.error);
+      return;
+    }
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   }
@@ -150,6 +157,11 @@ export default function ProductDetail({ product }: { product: Product }) {
                 Please select a size
               </p>
             )}
+            {addError ? (
+              <p className="mt-2 text-xs text-destructive" role="alert">
+                {addError}
+              </p>
+            ) : null}
           </div>
         </div>
 

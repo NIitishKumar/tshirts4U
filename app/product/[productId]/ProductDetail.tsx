@@ -9,8 +9,8 @@ import type { Product, Size, ProductColor } from "@/lib/products";
 import SizeSelector from "@/components/SizeSelector";
 import ColorSelector from "@/components/ColorSelector";
 import VirtualTryOn from "@/components/VirtualTryOn";
-import api from "@/app/services/appi";
 import LoginPage from "@/app/login/page";
+import { useCart } from "@/lib/cart-context";
 
 type StoredUser = { _id?: string; id?: string };
 
@@ -57,25 +57,28 @@ export default function ProductDetail({
   const [added, setAdded] = useState(false);
   const [tryOnOpen, setTryOnOpen] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const { addItem } = useCart();
 
   async function handleAdd() {
     if (!selectedSize || !userId) return;
-    try {
-      const { data } = await api.post<{ success?: boolean; message?: string }>(
-        `/api/users/${userId}/cart/items`,
-        {
-          productId: product._id,
-          size: selectedSize,
-          color: selectedColor.name,
-          count: 1,
-        },
-      );
-      if (data && "success" in data && data.success === false) return;
-      setAdded(true);
-      setTimeout(() => setAdded(false), 2000);
-    } catch (error) {
-      console.error(error);
+    setAddError(null);
+    const result = await addItem({
+      productId: product._id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      size: selectedSize,
+      color: selectedColor.name,
+      image: product.images[0],
+      quantity: 1,
+    });
+    if (!result.ok) {
+      setAddError(result.error);
+      return;
     }
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
   }
 
   async function handleBuyNow() {
@@ -219,6 +222,11 @@ export default function ProductDetail({
                 Please select a size
               </p>
             )}
+            {addError ? (
+              <p className="mt-2 text-xs text-destructive" role="alert">
+                {addError}
+              </p>
+            ) : null}
           </div>
         </div>
 

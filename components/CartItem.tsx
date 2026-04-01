@@ -29,7 +29,8 @@ export default function CartItemRow({ item }: { item: CartItemType }) {
             </p>
           </div>
           <button
-            onClick={() => removeItem(item.slug, item.size, item.color)}
+            type="button"
+            onClick={() => void removeItem(item)}
             className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label={`Remove ${item.name}`}
           >
@@ -40,8 +41,9 @@ export default function CartItemRow({ item }: { item: CartItemType }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1 rounded-full border border-border">
             <button
+              type="button"
               onClick={() =>
-                updateQuantity(item.slug, item.size, item.color, item.quantity - 1)
+                void updateQuantity(item, item.quantity - 1)
               }
               className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
               aria-label="Decrease quantity"
@@ -52,8 +54,9 @@ export default function CartItemRow({ item }: { item: CartItemType }) {
               {item.quantity}
             </span>
             <button
+              type="button"
               onClick={() =>
-                updateQuantity(item.slug, item.size, item.color, item.quantity + 1)
+                void updateQuantity(item, item.quantity + 1)
               }
               className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
               aria-label="Increase quantity"

@@ -174,9 +174,14 @@ export default function CheckoutForm() {
   useEffect(() => {
     const user = localStorage.getItem("user");
     if (!user) return;
-    const userData = JSON.parse(user) as User;
+    const userData = JSON.parse(user) as User & { _id?: string };
     setIsLoggedIn(true);
-    setUserId(userData.id ?? null);
+    const resolved = userData._id ?? userData.id;
+    setUserId(
+      resolved != null && String(resolved).length > 0
+        ? String(resolved)
+        : null,
+    );
   }, []);
 
   useEffect(() => {
@@ -510,7 +515,7 @@ export default function CheckoutForm() {
         sessionStorage.removeItem("tshirts4u_buy_now_item");
         setBuyNowItem(null);
       } else {
-        clearCart();
+        await clearCart();
       }
       router.push(`/orders/${createdOrderId}`);
     } catch (err: unknown) {

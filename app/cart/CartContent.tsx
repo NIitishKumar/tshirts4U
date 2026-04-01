@@ -6,11 +6,37 @@ import { useCart } from "@/lib/cart-context";
 import CartItemRow from "@/components/CartItem";
 
 export default function CartContent() {
-  const { items, totalPrice } = useCart();
+  const { items, totalPrice, cartLoading, cartError, refreshCart } = useCart();
 
   function handleProceedToCheckout() {
     // If user comes from cart, force full-cart checkout (not Buy Now single item).
     sessionStorage.removeItem("tshirts4u_buy_now_item");
+  }
+
+  if (cartLoading && items.length === 0) {
+    return (
+      <div className="mt-20 flex flex-col items-center gap-4 text-center">
+        <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
+        <p className="text-sm text-muted-foreground">Loading your cart…</p>
+      </div>
+    );
+  }
+
+  if (cartError && items.length === 0) {
+    return (
+      <div className="mt-20 flex flex-col items-center gap-4 text-center">
+        <p className="text-sm text-destructive" role="alert">
+          {cartError}
+        </p>
+        <button
+          type="button"
+          onClick={() => void refreshCart()}
+          className="rounded-full border border-border bg-surface px-5 py-2 text-sm font-medium text-foreground transition hover:border-accent"
+        >
+          Try again
+        </button>
+      </div>
+    );
   }
 
   if (items.length === 0) {
@@ -40,10 +66,19 @@ export default function CartContent() {
 
   return (
     <div className="mt-8 grid gap-12 lg:grid-cols-[1fr_340px]">
+      {cartError ? (
+        <p className="col-span-full text-sm text-destructive" role="alert">
+          {cartError}
+        </p>
+      ) : null}
       <div className="divide-y divide-border">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <CartItemRow
-            key={`${item.slug}-${item.size}-${item.color}`}
+            key={
+              item.lineItemId
+                ? item.lineItemId
+                : `${item.slug}-${item.size}-${item.color}-${index}`
+            }
             item={item}
           />
         ))}
