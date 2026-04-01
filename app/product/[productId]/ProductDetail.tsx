@@ -165,13 +165,13 @@ export default function ProductDetail({
           </div>
         </div>
 
-        <button
+        {/* <button
           type="button"
           onClick={() => setTryOnOpen(true)}
           className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-border bg-transparent text-sm font-bold uppercase tracking-wider text-foreground transition hover:border-accent hover:text-accent"
         >
           Try on with camera
-        </button>
+        </button> */}
 
         <button
           onClick={handleAdd}
